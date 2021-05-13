@@ -12,40 +12,40 @@ var Frames = {}
 var Details = {}
 
 function Channel() {
-    Id = 0
-    Name = ""
-    ComType = ""
-    IpAddress = ""
-    Port = 0
-    Period = 0
-    WaitTime = 0
-    Active = 0
+    id=0
+    ch_name=""	
+    com_type=""	
+    ip_address=""	
+    port=0	
+    period=0	
+    wait_time=0
+    active = 0
 }
 function Frame() {
-    Id = 0
-    Name = ""
-    ChannelId = ""
-    FunctionCode = 0
-    DeviceAddress = 0
-    StartAddress = 0
-    ReadByte = 0
-    Active = 0
+    id =0
+    fr_name=""	
+    channel_id=0	
+    function_code=0	
+    device_address=0	
+    start_address=0	
+    read_byte=0	
+    active=0
 }
 function Detail() {
-    Id = 0
-    ObjectName = ''
-    ChannelId = 0
-    FrameId = 0
-    ObjectType = ''
-    LowLimit = 0
-    HighLimit = 0
-    StartAddress = 0
-    BitOffset = 0
-    DataType = 0
-    Scale = 0
-    Offset = 0
-    RecordType = ''
-    Units = ''
+    id=0	
+    object_name=""	
+    channel_id=0	
+    frame_id=0	
+    object_type=""	
+    low_limit=0	
+    high_limit=0	
+    start_address=0	
+    bit_offset=0	
+    data_type=0	
+    scale=0	
+    offset=0	
+    record_type=0	
+    units=""	
 }
 
 Excel.loadExcelFile()//아직 db구조 안바꿔서 db넣을때 에러남.. 대기
@@ -53,52 +53,51 @@ Excel.loadExcelFile()//아직 db구조 안바꿔서 db넣을때 에러남.. 대�
 DBH.device_select("channels", function (rows) {
     rows.forEach(row => {
         tmp = new Channel();
-        tmp.Id = row["Id"]
-        tmp.Name = row["Name"]
-        tmp.ComType = row["ComType"]
-        tmp.IpAddress = row["IpAddress"]
-        tmp.Port = row["Port"]
-        tmp.Period = row["Period"]
-        tmp.WaitTime = row["WaitTime"]
-        tmp.Active = row["Active"]
+        tmp.id = row["id"]
+        tmp.ch_name = row["name"]
+        tmp.com_type = row["com_type"]
+        tmp.ip_address = row["ip_address"]
+        tmp.port = row["port"]
+        tmp.period = row["period"]
+        tmp.wait_time = row["wait_time"]
+        tmp.active = row["active"]
         Channels.push(tmp)//리스트에 패킷데이터를 저장한다.
-        Frames[tmp.Index] = [] //ChannelName을 key값으로 리스트를 생성해준다. 리스트에는 frames들이 들어갈계획
-        console.log(Frames[tmp.Index])
+        Frames[tmp.id] = [] //ChannelName을 key값으로 리스트를 생성해준다. 리스트에는 frames들이 들어갈계획
     })
     //Frame데이터를 DB에서 빼내온다.
     DBH.device_select("frames", function (rows) {
         rows.forEach(row => {
             tmp = new Frame();
-            tmp.Id = row["Id"]
-            tmp.Name = row["Name"]
-            tmp.ChannelId = row["ChannelId"]
-            tmp.FunctionCode = row["FunctionCode"]
-            tmp.DeviceAddress = row["DeviceAddress"]
-            tmp.StartAddress = row["StartAddress"]
-            tmp.ReadByte = row["ReadByte"]
-            tmp.Active = row["Active"]
-            Frames[tmp.ChannelIndex].push(tmp)//channelname에 맞게 리스트에 차례로 삽입한다. 나중에 패킷 보낼때 사용함.
-            Details[tmp.Index] = []
+            tmp.id = row["id"]
+            tmp.fr_name = row["name"]
+            tmp.channel_id = row["channel_id"]
+            tmp.function_code = row["function_code"]
+            tmp.device_address = row["device_address"]
+            tmp.start_address = row["start_address"]
+            tmp.read_byte = row["read_byte"]
+            tmp.active = row["active"]
+            Frames[tmp.channel_id].push(tmp)//channelname에 맞게 리스트에 차례로 삽입한다. 나중에 패킷 보낼때 사용함.
+            Details[tmp.id] = []
         })
     })
     DBH.device_select("details", function (rows) {
         rows.forEach(row => {
             tmp = new Detail();
-            tmp.Id = row["Id"]
-            tmp.ObjectType = row['ObjectType']
-            tmp.ChennelId = row['ChennelId']
-            tmp.FrameId = row['FrameId']
-            tmp.ObjectType = row['ObjectType']
-            tmp.LowLimit = row['LowLimit']
-            tmp.HighLimit = row['HighLimit']
-            tmp.StartAddress = row['StartAddress']
-            tmp.BitOffset = row['BitOffset']
-            tmp.DataType = row['DataType']
-            tmp.Scale = row['Scale']
-            tmp.Offset = row['Offset']
-            tmp.RecordType = row['RecordType']
-            tmp.Units = row['Units']
-            Details[tmp.Frameindex].push(tmp)
+            tmp.id = row["id"]
+            tmp.object_name = row['object_name']
+            tmp.channel_id = row['channel_id']
+            tmp.frame_id = row['frame_id']
+            tmp.object_type = row['object_type']
+            tmp.low_limit = row['low_limit']
+            tmp.high_limit = row['high_limit']
+            tmp.start_address = row['start_address']
+            tmp.bit_offset = row['bit_offset']
+            tmp.data_type = row['data_type']
+            tmp.scale = row['scale']
+            tmp.offset = row['offset']
+            tmp.record_type = row['record_type']
+            tmp.units = row['units']
+            Details[tmp.frame_id].push(tmp)
         })
     })
     console.log("start 통신", Channels.length)
@@ -122,26 +121,31 @@ function modbusStart() {
 
         //tcp설정
         var options = {
-          'host': Channels[i].IpAddress,
-          'port': Channels[i].Port
+          'host': Channels[i].ip_address,
+          'port': Channels[i].port
         }
-        sockets[i].on("connect", function () {//소켓이 연결되는 경우 어떻게 사용할 건지
-            console.log("connected", Channels[i])
-            var targetFrames = Frames[Channels[i].ChannelName]
-            for (let fi = 0; fi < targetFrames.length; fi++) {
-                if (targetFrames[fi].FunctionCode == 3) {
+        sockets[i].on("connect", function () { //소켓이 연결되는 경우 어떻게 사용할 건지
+            console.log("connected!!!!", Channels[i].ip_address)
+            var targetFrames = Frames[Channels[i].id]
+            console.log("targetFrame!!!",targetFrames)
+            for (let fi = 0; fi < targetFrames.length; fi++) {//frame의 개수만큼 반복하는 코드
+                if (targetFrames[fi].function_code == 3) {//만약 3번 함수이면 실행한다.
                     setInterval(function () {
-                        clients[i].readHoldingRegisters(targetFrames[fi].StartAddress, targetFrames[fi].ReadByte)
+                        clients[i].readHoldingRegisters(targetFrames[fi].start_address, targetFrames[fi].read_byte)
                           .then(function (resp) {
                                 modbus_result = resp.response._body.valuesAsArray
-                                console.log(modbus_result)
+                                console.log(fi,modbus_result)
                                 //이제 여기서 데이터를 정규화 하는 작업 해야함
-                                sensors = Details[targetFrames[fi].ChannelName + targetFrames[fi].FrameName]//detail객체
+                                sensors = Details[targetFrames[fi].id]//detail객체
+                                if(sensors === undefined || sensors.length==0){
+                                    //Detail이 정의되어 있지 않은 경우 연산없이 넘긴다.
+                                    return
+                                }
                                 var targetData
                                 var resData
                                 for(let se = 0; se < sensors.length; se++){
-                                    targetData = modbus_result[sensors[se].StartAddress+sensors[se].BitOffset-targetFrames[fi].StartAddress]
-                                    switch(sensors[se].DataType){
+                                    targetData = modbus_result[sensors[se].start_address+sensors[se].bit_offset-targetFrames[fi].start_address]
+                                    switch(sensors[se].data_type){
                                         case 0://16bit unsigned int
                                             resData = Unsignedbit(targetData,16)
                                             break;
@@ -164,7 +168,7 @@ function modbusStart() {
                                     }
                                     console.log(resData)
                                     //실시간 디비 넣는 작업 필요
-
+                                    
 
                                 }
                           }).catch(function () {
@@ -177,7 +181,7 @@ function modbusStart() {
 
         });     
         sockets[i].on("error", function () {//에러가 발생하면 어떻게 할건지
-            console.log("errored", Channels[i])
+            console.log("errored !!!!!!", Channels[i].ip_address)
         });     
         sockets[i].connect(options)// 실제로 포트를 열어준다.
     }
