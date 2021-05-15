@@ -1,5 +1,5 @@
 const DBH = require('./database.js')
-var Excel  = require('./get_excel.js')
+var Excel = require('./get_excel.js')
 const Modbus = require('jsmodbus')
 const net = require('net')
 const { timeStamp } = require('console')
@@ -12,40 +12,40 @@ var Frames = {}
 var Details = {}
 
 function Channel() {
-    id=0
-    ch_name=""	
-    com_type=""	
-    ip_address=""	
-    port=0	
-    period=0	
-    wait_time=0
+    id = 0
+    ch_name = ""
+    com_type = ""
+    ip_address = ""
+    port = 0
+    period = 0
+    wait_time = 0
     active = 0
 }
 function Frame() {
-    id =0
-    fr_name=""	
-    channel_id=0	
-    function_code=0	
-    device_address=0	
-    start_address=0	
-    read_byte=0	
-    active=0
+    id = 0
+    fr_name = ""
+    channel_id = 0
+    function_code = 0
+    device_address = 0
+    start_address = 0
+    read_byte = 0
+    active = 0
 }
 function Detail() {
-    id=0	
-    object_name=""	
-    channel_id=0	
-    frame_id=0	
-    object_type=""	
-    low_limit=0	
-    high_limit=0	
-    start_address=0	
-    bit_offset=0	
-    data_type=0	
-    scale=0	
-    offset=0	
-    record_type=0	
-    units=""	
+    id = 0
+    object_name = ""
+    channel_id = 0
+    frame_id = 0
+    object_type = ""
+    low_limit = 0
+    high_limit = 0
+    start_address = 0
+    bit_offset = 0
+    data_type = 0
+    scale = 0
+    offset = 0
+    record_type = 0
+    units = ""
 }
 
 Excel.loadExcelFile()//아직 db구조 안바꿔서 db넣을때 에러남.. 대기
@@ -104,16 +104,6 @@ DBH.device_select("channels", function (rows) {
     modbusStart()
 })
 
-function Unsignedbit(n,k){
-    var data = String(n).split("");
-    var res = 0
-    for (var i=0; i < data.length; i++) {
-        res += parseInt(data[i]) * Math.pow(k,i)
-    }
-    return res
-}
-
-
 function modbusStart() {
     for (let i = 0; i < Channels.length; i++) { // 소켓을 설정하고 열어준다.
         sockets[i] = new net.Socket() //socket을 객체로 다루기 위해 설정해준다.
@@ -121,68 +111,71 @@ function modbusStart() {
 
         //tcp설정
         var options = {
-          'host': Channels[i].ip_address,
-          'port': Channels[i].port
+            'host': Channels[i].ip_address,
+            'port': Channels[i].port
         }
-        sockets[i].on("connect", function () { //소켓이 연결되는 경우 어떻게 사용할 건지
+        sockets[i].on("connect", async function () { //소켓이 연결되는 경우 어떻게 사용할 건지
             console.log("connected!!!!", Channels[i].ip_address)
             var targetFrames = Frames[Channels[i].id]
-            console.log("targetFrame!!!",targetFrames)
+            console.log("targetFrame!!!", targetFrames)
             for (let fi = 0; fi < targetFrames.length; fi++) {//frame의 개수만큼 반복하는 코드
-                if (targetFrames[fi].function_code == 3) {//만약 3번 함수이면 실행한다.
-                    setInterval(function () {
-                        clients[i].readHoldingRegisters(targetFrames[fi].start_address, targetFrames[fi].read_byte)
-                          .then(function (resp) {
-                                modbus_result = resp.response._body.valuesAsArray
-                                console.log(fi,modbus_result)
+                if (targetFrames[fi].active == 1) { // active 상태일때만 반복시킴
+                    console.log("타켓을 보자", targetFrames[fi])
+                    if (targetFrames[fi].function_code == 3) {//만약 3번 함수이면 실행한다.
+                        setInterval(()=>{
+                            clients[i].readHoldingRegisters(targetFrames[fi].start_address, targetFrames[fi].read_byte)
+                            .then(function (resp) {
+                                modbus_result = resp.response._body._valuesAsBuffer
+                                console.log("set read:", targetFrames[fi].start_address, targetFrames[fi].read_byte)
+                                console.log(fi, modbus_result)
                                 //이제 여기서 데이터를 정규화 하는 작업 해야함
                                 sensors = Details[targetFrames[fi].id]//detail객체
-                                if(sensors === undefined || sensors.length==0){
+                                if (sensors === undefined || sensors.length == 0) {
                                     //Detail이 정의되어 있지 않은 경우 연산없이 넘긴다.
                                     return
                                 }
-                                var targetData
+                                var targetIdx
                                 var resData
-                                for(let se = 0; se < sensors.length; se++){
-                                    targetData = modbus_result[sensors[se].start_address+sensors[se].bit_offset-targetFrames[fi].start_address]
-                                    switch(sensors[se].data_type){
+                                for (let se = 0; se < sensors.length; se++) {
+                                    targetIdx = (sensors[se].start_address + sensors[se].bit_offset - targetFrames[fi].start_address)*2
+                                    switch (sensors[se].data_type) {
                                         case 0://16bit unsigned int
-                                            resData = Unsignedbit(targetData,16)
+                                            resData = modbus_result.readUInt16BE(targetIdx)
                                             break;
                                         case 1://16bit signed
-                                            // console.log(targetData)
-                                            resData = -32768 + Unsignedbit(targetData, 16)
+                                            resData = modbus_result.readInt16BE(targetIdx)
                                             break;
                                         case 2://2 : 32bit unsigned int
-                                            resData = Unsignedbit(targetData,32)
+                                            resData = modbus_result.readUInt32BE(targetIdx)
                                             break;
                                         case 3://3 : 32bit signed int
-                                            resData = -2147483648 + Unsignedbit(targetData,32)
+                                            resData = modbus_result.readInt32BE(targetIdx)
                                             break;
                                         case 4:// 4 : 32bit float
-                                            resData = Unsignedbit(targetData,32)
+                                            resData = modbus_result.readFloatBE(targetIdx)
                                             break;
                                         case 5://5 : 64bit double
-                                            resData = -9223372036854775808 + Unsignedbit(targetData,64)
+                                            resData =modbus_result.readDoubleBE(targetIdx)
                                             break;
                                     }
-                                    console.log(resData)
+                                    console.log("resData:", resData, "targetIdx" , targetIdx)
                                     //실시간 디비 넣는 작업 필요
-                                    
-
+                                    resData = se//임시로 인덱스를 넣어줌
+                                    //DB에 resData를 갱신한다.
+                                    DBH.details_update(sensors[se].id, resData)
                                 }
-                          }).catch(function () {
-                            console.error(arguments)
-                            sockets[i].end()
-                          })
-                      }, 2000)
+                            }).catch(function () {
+                                console.error(arguments)
+                                //sockets[i].end() 오류가 생겨도 닫지 않는다. 다른 frame 통신을 위해서
+                            })
+                        },2000)
+                    }
                 }
             }
-
-        });     
+        });
         sockets[i].on("error", function () {//에러가 발생하면 어떻게 할건지
             console.log("errored !!!!!!", Channels[i].ip_address)
-        });     
+        });
         sockets[i].connect(options)// 실제로 포트를 열어준다.
     }
 

@@ -43,6 +43,11 @@ var Database = {
             });
         }
         
-    }
+    },
+    details_update:function(details_id, resData){
+        connection.query(`UPDATE details SET update_date=now(), result=${resData} WHERE id=${details_id}`, (error, rows, fields) => {
+            if (error) throw error;
+        });
+    },
 }
 module.exports = Database
