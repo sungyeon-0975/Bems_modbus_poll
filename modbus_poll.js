@@ -162,7 +162,7 @@ function modbusStart() {
                                     //실시간 디비 넣는 작업 필요
                                     resData = se//임시로 인덱스를 넣어줌
                                     //DB에 resData를 갱신한다.
-                                    DBH.details_update(sensors[se].id, resData)
+                                    DBH.details_update(sensors[se].id, sensors[se].scale*resData + sensors[se].offset)
                                 }
                             }).catch(function () {
                                 console.error(arguments)
@@ -172,6 +172,7 @@ function modbusStart() {
                     }
                 }
             }
+
         });
         sockets[i].on("error", function () {//에러가 발생하면 어떻게 할건지
             console.log("errored !!!!!!", Channels[i].ip_address)

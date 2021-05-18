@@ -15,9 +15,6 @@ var Database = {
             callback(rows);
         })
     },
-    tableToJson:function(data){
-
-    },
     device_delete:function(tablename){
         connection.query('DELETE from '+ tablename, (error, rows, fields) => {
             if (error) throw error;
@@ -49,5 +46,18 @@ var Database = {
             if (error) throw error;
         });
     },
+    batch_insert: function(table_name, object_name, value){
+        connection.query(`INSERT INTO ${table_name} (object_name, update_time, value) 
+        VALUES ("${object_name}",now(),${value})`, (error, rows, fields) => {
+            if (error) throw error;
+        });
+    },
+    batch_select : function(table_name,object_name, time_interval,callback){
+        connection.query(`SELECT avg(value) from ${table_name} where object_name = "${object_name}" and update_time between timestamp(DATE_SUB(NOW(), INTERVAL ${time_interval})) and timestamp(NOW())`, (error, rows, fields) => {
+            if (error) throw error;
+            callback(rows);
+        });
+    }
+
 }
 module.exports = Database
