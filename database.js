@@ -41,6 +41,35 @@ var Database = {
         }
         
     },
+    database_insert:function(data){
+        console.log(data)
+        connection.query('INSERT database_details VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);', data, (error, rows, fields) => {
+            if (error) throw error;
+            console.log("inert success")
+        })
+
+    },
+    database_get_ids:async function(){
+        return new Promise(function(resolve, reject){
+            connection.query('SELECT db_id FROM database_details;', (error, rows, fields) => {
+                if (error) throw error;
+                console.log(rows)
+                db_ids = []
+                for(let i= 0; i<rows.length; i++){
+                    db_ids.push(rows[i].db_id)
+                }
+                resolve(db_ids)
+            });
+        });
+    },
+    database_get_row:async function(db_id){
+        return new Promise(function(resolve, reject){
+            connection.query('SELECT * FROM database_details where db_id=?',[db_id], (error, rows, fields) => {
+                if (error) throw error;
+                resolve(rows[0])
+            });
+        })
+    },
     details_update:function(details_id, resData){
         connection.query(`UPDATE details SET update_date=now(), result=${resData} WHERE id=${details_id}`, (error, rows, fields) => {
             if (error) throw error;
