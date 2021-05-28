@@ -32,23 +32,31 @@ function Frame() {
     active = 0
 }
 function Detail() {
-    id = 0
-    object_name = ""
-    channel_id = 0
-    frame_id = 0
-    object_type = ""
-    low_limit = 0
-    high_limit = 0
-    start_address = 0
-    bit_offset = 0
-    data_type = 0
-    scale = 0
-    offset = 0
-    record_type = 0
-    units = ""
+    object_name = '',
+    object_type = '',
+    id = 0,
+    units = '',
+    low_limit = 0,
+    high_limit = 0,
+    m_enable = 0,
+    m_ip = 0,
+    m_channel = 0,
+    m_func = 0,
+    m_addr = 0,
+    m_offsetbit = 0,
+    m_dattype = 0,
+    m_r_scale = 0,
+    m_r_offset = 0,
+    m_w_ip = 0,
+    m_w_id = 0,
+    m_w_fc = 0,
+    m_w_addr = 0,
+    m_w_datatype = 0,
+    m_w_scale = 0,
+    m_w_offset = 0
 }
 
-Excel.loadExcelFile()//아직 db구조 안바꿔서 db넣을때 에러남.. 대기
+Excel.loadExcelFile()
 //DB에서 파일을 긁어온다.
 DBH.device_select("channels", function (rows) {
     rows.forEach(row => {
@@ -76,28 +84,36 @@ DBH.device_select("channels", function (rows) {
             tmp.start_address = row["start_address"]
             tmp.read_byte = row["read_byte"]
             tmp.active = row["active"]
-            Frames[tmp.channel_id].push(tmp)//channelname에 맞게 리스트에 차례로 삽입한다. 나중에 패킷 보낼때 사용함.
+            Frames[tmp.channel_id].push(tmp)//channelname에 맞게 리스트에 차례로 삽입한다. 나중에 패킷 보낼때 사용함.'
             Details[tmp.id] = []
         })
     })
     DBH.device_select("details", function (rows) {
         rows.forEach(row => {
             tmp = new Detail();
-            tmp.id = row["id"]
-            tmp.object_name = row['object_name']
-            tmp.channel_id = row['channel_id']
-            tmp.frame_id = row['frame_id']
+            tmp.object_name  = row['object_name']
             tmp.object_type = row['object_type']
+            tmp.id = row["id"]
+            tmp.units  = row['units']
             tmp.low_limit = row['low_limit']
-            tmp.high_limit = row['high_limit']
-            tmp.start_address = row['start_address']
-            tmp.bit_offset = row['bit_offset']
-            tmp.data_type = row['data_type']
-            tmp.scale = row['scale']
-            tmp.offset = row['offset']
-            tmp.record_type = row['record_type']
-            tmp.units = row['units']
-            Details[tmp.frame_id].push(tmp)
+            tmp.high_limit  = row['high_limit']
+            tmp.m_enable = row['m_enable']
+            tmp.m_ip = row['m_ip']
+            tmp.m_channel = row['m_channel']
+            tmp.m_func = row['m_func']
+            tmp.m_addr = row['m_addr']
+            tmp.m_offsetbit = row['m_offsetbit']
+            tmp.m_dattype = row['m_dattype']
+            tmp.m_r_scale = row['m_r_scale']
+            tmp.m_r_offset = row['M_R_Om_r_offsetffset']
+            tmp.m_w_ip = row['m_w_ip']
+            tmp.m_w_id = row['m_w_id']
+            tmp.m_w_fc = row['m_w_fc']
+            tmp.m_w_addr = row['m_w_addr']
+            tmp.m_w_datatype = row['m_w_datatype']
+            tmp.m_w_scale = row['m_w_scale']
+            tmp.m_w_offset = row['m_w_offset']
+            Details[tmp.m_channel].push(tmp)
         })
     })
     console.log("start 통신", Channels.length)
@@ -108,7 +124,6 @@ function modbusStart() {
     for (let i = 0; i < Channels.length; i++) { // 소켓을 설정하고 열어준다.
         sockets[i] = new net.Socket() //socket을 객체로 다루기 위해 설정해준다.
         clients[i] = new Modbus.client.TCP(sockets[i]) // tcp를 열어준다.
-
         //tcp설정
         var options = {
             'host': Channels[i].ip_address,
@@ -137,7 +152,7 @@ function modbusStart() {
                                 var targetIdx
                                 var resData
                                 for (let se = 0; se < sensors.length; se++) {
-                                    targetIdx = (sensors[se].start_address + sensors[se].bit_offset - targetFrames[fi].start_address)*2
+                                    targetIdx = (sensors[se].m_addr + sensors[se].m_offsetbit - targetFrames[fi].start_address)*2
                                     switch (sensors[se].data_type) {
                                         case 0://16bit unsigned int
                                             resData = modbus_result.readUInt16BE(targetIdx)

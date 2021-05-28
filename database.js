@@ -34,8 +34,8 @@ var Database = {
             });
         }
         else{//Detail
-            connection.query(`INSERT INTO Details (id,object_name,channel_id,frame_id,object_type,low_limit,high_limit,start_address,bit_offset,data_type,scale,offset,record_type,units)
-             VALUES(${data.Id},'${data.ObjectName}',${data.ChannelId},${data.FrameId},'${data.ObjectType}',${data.LowLimit},${data.HighLimit},${data.StartAddress},${data.BitOffset},${data.DataType},${data.Scale},${data.Offset},${data.RecordType},'${data.Units}')`, (error, rows, fields) => {
+            connection.query(`INSERT INTO Details (object_name,object_type,id,units,low_limit,high_limit,m_enable,m_ip,m_channel ,m_func ,m_addr ,m_offsetbit ,m_dattype ,m_r_scale ,m_r_offset ,m_w_ip ,m_w_id ,m_w_fc ,m_w_addr ,m_w_dattype ,m_w_scale ,m_w_offset )
+             VALUES('${data.object_name}','${data.object_type}',${data.id},'${data.units}','${data.low_limit}','${data.high_limit}',${data.m_enable},${data.m_ip},${data.m_channel},${data.m_func},${data.m_addr},${data.m_offsetbit},${data.m_dattype},${data.m_r_scale},${data.m_r_offset},${data.m_w_ip},${data.m_w_id},${data.m_w_fc},${data.m_w_addr},${data.m_w_dattype},${data.m_w_scale},${data.m_w_offset})`, (error, rows, fields) => {
                 if (error) throw error;
             });
         }
@@ -76,17 +76,16 @@ var Database = {
         });
     },
     batch_insert: function(table_name, object_name, value){
-        connection.query(`INSERT INTO ${table_name} (object_name, update_time, value) 
+        connection.query(`INSERT INTO ${table_name} (objectname, logtime, logvalue) 
         VALUES ("${object_name}",now(),${value})`, (error, rows, fields) => {
             if (error) throw error;
         });
     },
     batch_select : function(table_name,object_name, time_interval,callback){
-        connection.query(`SELECT avg(value) from ${table_name} where object_name = "${object_name}" and update_time between timestamp(DATE_SUB(NOW(), INTERVAL ${time_interval})) and timestamp(NOW())`, (error, rows, fields) => {
+        connection.query(`SELECT avg(logvalue) from ${table_name} where object_name = "${object_name}" and update_time between timestamp(DATE_SUB(NOW(), INTERVAL ${time_interval})) and timestamp(NOW())`, (error, rows, fields) => {
             if (error) throw error;
             callback(rows);
         });
     }
-
 }
 module.exports = Database
