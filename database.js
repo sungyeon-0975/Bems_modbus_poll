@@ -35,7 +35,7 @@ var Database = {
         }
         else{//Detail
             connection.query(`INSERT INTO Details (object_name,object_type,id,units,low_limit,high_limit,m_enable,m_ip,m_channel ,m_func ,m_addr ,m_offsetbit ,m_dattype ,m_r_scale ,m_r_offset ,m_w_ip ,m_w_id ,m_w_fc ,m_w_addr ,m_w_dattype ,m_w_scale ,m_w_offset )
-             VALUES('${data.object_name}','${data.object_type}',${data.id},'${data.units}','${data.low_limit}','${data.high_limit}',${data.m_enable},${data.m_ip},${data.m_channel},${data.m_func},${data.m_addr},${data.m_offsetbit},${data.m_dattype},${data.m_r_scale},${data.m_r_offset},${data.m_w_ip},${data.m_w_id},${data.m_w_fc},${data.m_w_addr},${data.m_w_dattype},${data.m_w_scale},${data.m_w_offset})`, (error, rows, fields) => {
+             VALUES('${data.object_name}','${data.object_type}',${data.id},'${data.units}','${data.low_limit}','${data.high_limit}',${data.m_enable},${data.m_ip},${data.m_channel},${data.m_func},${data.m_addr},${data.m_offsetbit},${data.m_datatype},${data.m_r_scale},${data.m_r_offset},${data.m_w_ip},${data.m_w_id},${data.m_w_fc},${data.m_w_addr},${data.m_w_dattype},${data.m_w_scale},${data.m_w_offset})`, (error, rows, fields) => {
                 if (error) throw error;
             });
         }
@@ -70,8 +70,14 @@ var Database = {
             });
         })
     },
-    details_update:function(details_id, resData){
-        connection.query(`UPDATE details SET update_date=now(), result=${resData} WHERE id=${details_id}`, (error, rows, fields) => {
+    realtime_update:function(object_name, resData){
+        connection.query(`UPDATE realtime_table SET logtime=now(), logvalue=${resData} WHERE objectname=${object_name}`, (error, rows, fields) => {
+            if (error) throw error;
+        });
+    },
+    realtime_insert: function(data){
+        connection.query(`insert realtime_table(objectname,logtime,object_type,com_type) 
+        values('${data.object_name}',now(),'${data.object_type}','mysql')`,(error, rows, fields) => {
             if (error) throw error;
         });
     },

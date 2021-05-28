@@ -105,7 +105,7 @@ DBH.device_select("channels", function (rows) {
             tmp.m_offsetbit = row['m_offsetbit']
             tmp.m_dattype = row['m_dattype']
             tmp.m_r_scale = row['m_r_scale']
-            tmp.m_r_offset = row['M_R_Om_r_offsetffset']
+            tmp.m_r_offset = row['m_r_offset']
             tmp.m_w_ip = row['m_w_ip']
             tmp.m_w_id = row['m_w_id']
             tmp.m_w_fc = row['m_w_fc']
@@ -173,11 +173,15 @@ function modbusStart() {
                                             resData =modbus_result.readDoubleBE(targetIdx)
                                             break;
                                     }
+                                    if (typeof resData == 'undefined'){
+                                        console.log(sensors[se])
+                                        return 
+                                    }
                                     console.log("resData:", resData, "targetIdx" , targetIdx)
                                     //실시간 디비 넣는 작업 필요
                                     resData = se//임시로 인덱스를 넣어줌
                                     //DB에 resData를 갱신한다.
-                                    DBH.details_update(sensors[se].id, sensors[se].scale*resData + sensors[se].offset)
+                                    DBH.realtime_update(sensors[se].object_name, sensors[se].m_r_scale*resData + sensors[se].m_r_offset)
                                 }
                             }).catch(function () {
                                 console.error(arguments)

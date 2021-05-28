@@ -47,6 +47,10 @@ var Detail={
     m_w_scale : '',
     m_w_offset : '',
 }
+var Real= {
+    object_name: '',
+    object_type : ''
+}
 var Excel = {
     loadExcelFile: async function(filepath){
         const workbook = new ExcelJS.Workbook() // 엑셀의 객체
@@ -95,20 +99,23 @@ var Excel = {
             }
             else{//Detail 페이지
                 DBH.device_delete('details')// DB깔끔하게 밀어버리기
+                DBH.device_delete('realtime_table')
                 for (let i = 2; i < sheetData.length; i++) {
+                    Real.object_name     = sheetData[i][1].value
                     Detail.object_name   =sheetData[i][1].value
+                    Real.object_type     =sheetData[i][2].value
                     Detail.object_type   =sheetData[i][2].value
-                    Detail.id           =sheetData[i][3].value
-                    Detail.units        =(typeof sheetData[i][4] === 'undefined') ? '' : sheetData[i][4].value
+                    Detail.id            =sheetData[i][3].value
+                    Detail.units         =(typeof sheetData[i][4] === 'undefined') ? '' : sheetData[i][4].value
                     Detail.low_limit     =sheetData[i][5].value
                     Detail.high_limit    =sheetData[i][6].value
-                    Detail.m_enable     =sheetData[i][7].value
+                    Detail.m_enable      =sheetData[i][7].value
                     Detail.m_ip         =sheetData[i][8].value
                     Detail.m_channel    =sheetData[i][9].value
                     Detail.m_func       =sheetData[i][10].value
                     Detail.m_addr       =sheetData[i][11].value
                     Detail.m_offsetbit  =sheetData[i][12].value
-                    Detail.m_dattype    =sheetData[i][13].value
+                    Detail.m_datatype    =sheetData[i][13].value
                     Detail.m_r_scale    =sheetData[i][14].value
                     Detail.m_r_offset   =sheetData[i][15].value
                     Detail.m_w_ip       =(typeof sheetData[i][16] === 'undefined') ? null : sheetData[i][16].value
@@ -119,6 +126,7 @@ var Excel = {
                     Detail.m_w_scale    =(typeof sheetData[i][21] === 'undefined') ? null : sheetData[i][21].value.result
                     Detail.m_w_offset   =(typeof sheetData[i][22] === 'undefined') ? null : sheetData[i][22].value
                     DBH.device_insert(page, Detail)
+                    DBH.realtime_insert(Real)
                 }
             }
         }
