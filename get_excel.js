@@ -3,7 +3,7 @@ const DBH  = require('./database.js')
 
 const filePath = './latestExcel.xlsx'
 
-var Channel={
+var IP={
     Id :'',
     Name : '',
     ComType : '',
@@ -13,7 +13,7 @@ var Channel={
     WaitTime : '',
     Active : ''
 }
-var Frame={
+var Channel={
     Id : '',
     Name : '',
     ChannelId : '',
@@ -67,43 +67,41 @@ var Excel = {
                 })
             })
             if( page == 0){ // Device 페이지
-                DBH.device_delete('channels')// DB깔끔하게 밀어버리기
+                DBH.device_delete('modbus_ip')// DB깔끔하게 밀어버리기
                 for (let i = 2; i < sheetData.length; i++) {
-                    Channel.Id          =sheetData[i][1].value
-                    Channel.Name	    =sheetData[i][2].value
-                    Channel.ComType		=sheetData[i][3].value
-                    Channel.IpAddress	=sheetData[i][4].value
-                    Channel.Port		=sheetData[i][5].value
-                    Channel.Period		=sheetData[i][6].value
-                    Channel.WaitTime	=sheetData[i][7].value
-                    Channel.Active		=sheetData[i][8].value
+                    IP.Id          =sheetData[i][1].value
+                    IP.Name	    =sheetData[i][2].value
+                    IP.ComType		=sheetData[i][3].value
+                    IP.IpAddress	=sheetData[i][4].value
+                    IP.Port		=sheetData[i][5].value
+                    IP.Period		=sheetData[i][6].value
+                    IP.WaitTime	=sheetData[i][7].value
+                    IP.Active		=sheetData[i][8].value
                     // 이걸 DB에 저장해야함
-                    console.log(Channel)
-                    DBH.device_insert(page, Channel)
+                    console.log(IP)
+                    DBH.device_insert(page, IP)
                 }
             }
             else if(page ==1){//Frame 페이지
-                DBH.device_delete('frames')// DB깔끔하게 밀어버리기
+                DBH.device_delete('modbus_channels')// DB깔끔하게 밀어버리기
                 for (let i = 2; i < sheetData.length; i++) {
-                    Frame.Id            =sheetData[i][1].value
-                    Frame.Name	        =sheetData[i][2].value
-                    Frame.ChannelId		=sheetData[i][3].value
-                    Frame.FunctionCode	=sheetData[i][4].value
-                    Frame.DeviceAddress	=sheetData[i][5].value
-                    Frame.StartAddress	=sheetData[i][6].value
-                    Frame.ReadByte		=sheetData[i][7].value
-                    Frame.Active		=sheetData[i][8].value
+                    Channel.Id            =sheetData[i][1].value
+                    Channel.Name	        =sheetData[i][2].value
+                    Channel.ChannelId		=sheetData[i][3].value
+                    Channel.FunctionCode	=sheetData[i][4].value
+                    Channel.DeviceAddress	=sheetData[i][5].value
+                    Channel.StartAddress	=sheetData[i][6].value
+                    Channel.ReadByte		=sheetData[i][7].value
+                    Channel.Active		=sheetData[i][8].value
                     // 이걸 DB에 저장해야함
-                    DBH.device_insert(page, Frame)
+                    DBH.device_insert(page, Channel)
                 }
             }
             else{//Detail 페이지
-                DBH.device_delete('details')// DB깔끔하게 밀어버리기
+                DBH.device_delete('modbus_details')// DB깔끔하게 밀어버리기
                 DBH.device_delete('realtime_table')
                 for (let i = 2; i < sheetData.length; i++) {
-                    Real.object_name     = sheetData[i][1].value
-                    Detail.object_name   =sheetData[i][1].value
-                    Real.object_type     =sheetData[i][2].value
+                    console.log( sheetData[i][21].value)
                     Detail.object_type   =sheetData[i][2].value
                     Detail.id            =sheetData[i][3].value
                     Detail.units         =(typeof sheetData[i][4] === 'undefined') ? '' : sheetData[i][4].value
@@ -115,18 +113,18 @@ var Excel = {
                     Detail.m_func       =sheetData[i][10].value
                     Detail.m_addr       =sheetData[i][11].value
                     Detail.m_offsetbit  =sheetData[i][12].value
-                    Detail.m_datatype    =sheetData[i][13].value
+                    Detail.m_datatype   =sheetData[i][13].value
                     Detail.m_r_scale    =sheetData[i][14].value
                     Detail.m_r_offset   =sheetData[i][15].value
                     Detail.m_w_ip       =(typeof sheetData[i][16] === 'undefined') ? null : sheetData[i][16].value
                     Detail.m_w_id       =(typeof sheetData[i][17] === 'undefined') ? null : sheetData[i][17].value
                     Detail.m_w_fc       =(typeof sheetData[i][18] === 'undefined') ? null : sheetData[i][18].value
                     Detail.m_w_addr     =(typeof sheetData[i][19] === 'undefined') ? null : sheetData[i][19].value
-                    Detail.m_w_dattype =(typeof sheetData[i][20] === 'undefined') ? null : sheetData[i][20].value
+                    Detail.m_w_datatype =(typeof sheetData[i][20] === 'undefined') ? null : sheetData[i][20].value
                     Detail.m_w_scale    =(typeof sheetData[i][21] === 'undefined') ? null : sheetData[i][21].value.result
                     Detail.m_w_offset   =(typeof sheetData[i][22] === 'undefined') ? null : sheetData[i][22].value
                     DBH.device_insert(page, Detail)
-                    DBH.realtime_insert(Real)
+                    // DBH.realtime_insert(Real)
                 }
             }
         }
