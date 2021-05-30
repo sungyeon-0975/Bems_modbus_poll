@@ -101,7 +101,8 @@ var Excel = {
                 DBH.device_delete('modbus_details')// DB깔끔하게 밀어버리기
                 DBH.device_delete('realtime_table')
                 for (let i = 2; i < sheetData.length; i++) {
-                    console.log( sheetData[i][21].value)
+                    console.log(sheetData[i][1])
+                    Detail.object_name   =sheetData[i][1].value
                     Detail.object_type   =sheetData[i][2].value
                     Detail.id            =sheetData[i][3].value
                     Detail.units         =(typeof sheetData[i][4] === 'undefined') ? '' : sheetData[i][4].value
