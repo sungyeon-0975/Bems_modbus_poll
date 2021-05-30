@@ -121,6 +121,7 @@ DBH.device_select("modbus_ip", function (rows) {
 
 function modbusStart() {
     for (let i = 0; i < IPs.length; i++) { // 소켓을 설정하고 열어준다.
+        if (IPs[i].active == 0)continue
         sockets[i] = new net.Socket() //socket을 객체로 다루기 위해 설정해준다.
         clients[i] = new Modbus.client.TCP(sockets[i]) // tcp를 열어준다.
         //tcp설정
