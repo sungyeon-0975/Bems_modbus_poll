@@ -11,6 +11,8 @@
   "dependencies": {
     "exceljs": "^4.2.1",
     "jsmodbus": "^4.0.5",
-    "mysql": "^2.18.1"
+    "macaddress": "^0.5.2",
+    "mysql": "^2.18.1",
+    "node-macaddress": "^0.2.4"
   }
 }
