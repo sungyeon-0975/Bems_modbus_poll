@@ -4,10 +4,10 @@ const cronJob = require('cron').CronJob;
 var object_type = {}
 var object_values = {}
 
-DBH.device_select('details', function (rows) {
+DBH.device_select('modbus_details', function (rows) {
     rows.forEach(row => {
-        object_type[row["objectname"]] = row["objecttype"]
-        object_values[row["objectname"]] = []
+        object_type[row["object_name"]] = row["object_type"]
+        object_values[row["object_name"]] = []
     })
 })
 
@@ -47,9 +47,10 @@ const jobs = [
 new cronJob('*/10 * * * * *', () => {
     console.log('this runs every 10 seconds', new Date());
     DBH.device_select('realtime_table', function (rows) {
-        rows.forEach(row => {      
-            object_values[row["objectname"]].push(row["logvalue"])
+        rows.forEach(row => {  
+            object_values[row["object_name"]].push(row["logvalue"])
         })
+        console.log(object_values)
     })
     // setTimeout(()=>console.log('after timeout'),11000)
 }).start();

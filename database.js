@@ -69,20 +69,20 @@ var Database = {
         })
     },
     realtime_upsert:function(object_name, resData,object_type){
-        connection.query(`insert into realtime_table (objectname, logvalue, logtime,object_type, com_type)
+        connection.query(`insert into realtime_table (object_name, logvalue, logtime,object_type, com_type)
         values ('${object_name}', ${resData}, now(),'${object_type}','mysql') as t
         on duplicate key update logvalue = t.logvalue, logtime = t.logtime`, (error, rows, fields) => {
             if (error) throw error;
         });
     },
     // realtime_insert: function(data){
-    //     connection.query(`insert realtime_table(objectname,logtime,object_type,com_type) 
+    //     connection.query(`insert realtime_table(object_name,logtime,object_type,com_type) 
     //     values('${data.object_name}',now(),'${data.object_type}','mysql')`,(error, rows, fields) => {
     //         if (error) throw error;
     //     });
     // },
     batch_insert: function(table_name, object_name, value){
-        connection.query(`INSERT INTO ${table_name} (objectname, logtime, logvalue) 
+        connection.query(`INSERT INTO ${table_name} (object_name, logtime, logvalue) 
         VALUES ("${object_name}",now(),${value})`, (error, rows, fields) => {
             if (error) throw error;
         });

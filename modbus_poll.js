@@ -115,7 +115,7 @@ DBH.device_select("modbus_ip", function (rows) {
             Details[tmp.m_channel].push(tmp)
         })
     })
-    console.log("start 통신", Channels.length)
+    console.log("start 통신",IPs, Channels, Details)
     modbusStart()
 })
 
@@ -222,9 +222,10 @@ function modbusStart() {
                             }
                         }).catch(function () {
                             console.error(arguments)
+                            console.log("여기 에러")
                             //sockets[i].end() 오류가 생겨도 닫지 않는다. 다른 frame 통신을 위해서
                         })
-                    },2000)
+                    },IPs[i].wait_time)//waittime으로 해줘야함
                 }
             }
 
