@@ -83,7 +83,6 @@ async function dabase_type_check(db_row) {
                         connection.end()
                         resolve(false)
                     }else{
-                        console.log("check@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
                         var tmp = connection.query(`SELECT * from ${db_row.db_tablename};`, config, (error, rows, fields) => {
                             if (error) {
                                 console.log(error)
@@ -119,7 +118,6 @@ async function dabase_type_check(db_row) {
                         connection.end()
                         resolve(false)
                     }else{
-                        console.log("check@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
                         var tmp = connection.query(`SELECT * from ${db_row.db_tablename};`, config, (error, rows, fields) => {
                             if (error) {
                                 console.log(error)
