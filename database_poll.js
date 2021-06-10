@@ -1,5 +1,6 @@
 const DBH = require('./database.js')
 var mysql = require('mysql')
+var pgsql= require('pg')
 
 const net = require('net')
 const { timeStamp } = require('console')
@@ -24,15 +25,40 @@ function Database() {
     lt_type = "",
     object_type = ""
 }
+function iso_to_datetime(date){
+    date = new Date(date);
+    year = date.getFullYear();
+    month = date.getMonth()+1;
+    dt = date.getDate();
+    hour = date.getHours();
+    min = date.getMinutes();
+    sec = date.getSeconds();
+    if (dt < 10) {dt = '0' + dt;}
+    if (month < 10) { month = '0' + month; }
+    console.log(year+'-' + month + '-'+dt+" "+hour+":"+min+":"+sec);
+    time = year+'-' + month + '-'+dt+" "+hour+":"+min+":"+sec
+    return time
+}
+function insert_realtime_table(db_row, result){
+    result.forEach(row => {
+        tmp = []
+        // object_name과 logvalue는 필수이기 때문에 바로 tmp에 삽입한다.
+        tmp.push(row[db_row.object_name], row[db_row.log_value], 
+            row[db_row.ctrl_value],
+            db_row.object_type, "db", db_row.db_id)
+        console.log(tmp);
+        time_value = row[db_row.log_time]===undefined? false:iso_to_datetime(row[db_row.log_time])
+        // 넣은 값을 만들었기 때문에 realtime_table에 삽입한다.
+        DBH.insert_realtime_table(tmp, time_value)
+    });
+}
 async function dabase_type_check(db_row) {
     return new Promise(function (resolve, reject) {
         var config
         console.log("start type check:", db_row)
-        console.log("db_data is:....", db_row)
-        console.log("db_row.db_type:",db_row.db_type)
         switch (db_row.db_type) {
             case 0://MS-SQL
-            console.log("this database is MS-SQL")
+                console.log("this database is MS-SQL")
                 config = {
                     user: db_row.db_userid,
                     password: db_row.db_userpwd,
@@ -41,42 +67,120 @@ async function dabase_type_check(db_row) {
                 }
                 break;
             case 1://My-SQL
-            console.log("this database is My-SQL")
+                console.log("this database is My-SQL")
                 config = {
                     host: db_row.db_ip,
+                    port: db_row.db_port,
                     user: db_row.db_userid,
                     password: db_row.db_userpwd,
                     database: db_row.db_name
                 }
-                const connection = mysql.createConnection(config)//연결안되서 터지면?
-                const tmp = connection.query('SELECT * from ?;',[db_row.db_tablename,config], (error, rows, fields) => {
-                    if (error) {
-                        console.log(error)
+                var connection = mysql.createConnection(config)//연결안되서 터지면?
+                connection.connect(function(err) {
+                    if (err) {
+                        console.error('error connecting: ' + err.stack);
                         error_list.push(config)
+                        connection.end()
                         resolve(false)
-                    }
-                    else {//DB접근에 문제가 없는 경우
-                        console.log(rows);
-                        resolve(rows)
+                    }else{
+                        console.log("check@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+                        var tmp = connection.query(`SELECT * from ${db_row.db_tablename};`, config, (error, rows, fields) => {
+                            if (error) {
+                                console.log(error)
+                                error_list.push(config)
+                                connection.end()
+                                resolve(false)
+                            }
+                            else {//DB접근에 문제가 없는 경우
+                                console.log(rows);
+                                //데이터를 형식에 맞게 가져온다.???
+                                connection.end()
+                                insert_realtime_table(db_row, rows)
+                                resolve(true)
+                            }
+                        })
                     }
                 })
                 break;
-            case 2://Maria
-            console.log("this database is Maria")
+            case 2://Maria mysql 과 동일함
+                console.log("this database is Maria")
                 config = {
                     host: db_row.db_ip,
+                    port: db_row.db_port,
                     user: db_row.db_userid,
                     password: db_row.db_userpwd,
                     database: db_row.db_name
                 }
+                var connection = mysql.createConnection(config)//연결안되서 터지면?
+                connection.connect(function(err) {
+                    if (err) {
+                        console.error('error connecting: ' + err.stack);
+                        error_list.push(config)
+                        connection.end()
+                        resolve(false)
+                    }else{
+                        console.log("check@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+                        var tmp = connection.query(`SELECT * from ${db_row.db_tablename};`, config, (error, rows, fields) => {
+                            if (error) {
+                                console.log(error)
+                                error_list.push(config)
+                                connection.end()
+                                resolve(false)
+                            }
+                            else {//DB접근에 문제가 없는 경우
+                                console.log(rows);
+                                //데이터를 형식에 맞게 가져온다.???
+                                connection.end()
+                                insert_realtime_table(db_row, rows)
+                                resolve(true)
+                            }
+                        })
+                    }
+                })
                 break;
-            case 3://Acces
-            console.log("this database is Access")
+            case 3://PostgreSQL
+                console.log("this database is postgreSQL")
+                //여기서 postgre접근한뒤 config 설정해준다.
+                config = {
+                    host: db_row.db_ip,
+                    port: db_row.db_port,
+                    user: db_row.db_userid,
+                    password: db_row.db_userpwd,
+                    database: db_row.db_name,
+                }
+                var connection = new pgsql.Client(config);//pg의 Clinet객체를 이용하여 초기화
+                connection.connect(function(err) {
+                    if (err) {
+                        console.error('error connecting: ' + err.stack);
+                        error_list.push(config)
+                        connection.end()
+                        resolve(false)
+                    }else{
+                        connection.query(`SELECT * from ${db_row.db_tablename};`, (err, res) => {
+                            if (err) {
+                                console.log(err)
+                                error_list.push(config)
+                                connection.end()
+                                resolve(false)
+                            }
+                            else {//DB접근에 문제가 없는 경우
+                                console.log(res.rows);
+                                //데이터를 형식에 맞게 가져온다.???
+                                connection.end()
+                                insert_realtime_table(db_row, res.rows)
+                                resolve(true)
+                            }
+                        })
+                    }
+                })
+                break;
+            case 4://Acces
+            console.log("this database is Acces")
                 //.mdb에 접근해서 무언가 해야함.
-                break;
-            case 4://Excel
-            console.log("this database is Excel")
 
+                break;
+            case 5://Excel
+            console.log("this database is Excel")
                 break;
             case 5://Text
             console.log("this database is Text")
@@ -100,9 +204,8 @@ async function DatabaseStart() {
         if (result == false){
             continue
         }
-        console.log(result)
-        //db 통신 시작
+        console.log("result:",result)
     }
-
+    console.log(error_list)
 }
 DatabaseStart()

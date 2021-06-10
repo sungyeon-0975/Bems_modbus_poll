@@ -1,24 +1,16 @@
-const modbus = require('jsmodbus')
-const net = require('net')
-const socket = new net.Socket()
-const options = {
-  'host': '127.0.0.1',
-  'port': '502'
+const pg = require('pg')
+var config = {
+  host:'127.0.0.1',
+  user:'postgres',
+  password:'123123',
+  database:'test',
+  port: 5432
 }
-const client = new modbus.client.TCP(socket)
-
-socket.on('connect', function () {
-  client.readHoldingRegisters(0, 10)
-    .then(function (resp) {
-      console.log(resp.response._body.valuesAsArray)
-      socket.end()
-    }).catch(function () {
-      console.error(require('util').inspect(arguments, {
-        depth: null
-      }))
-      socket.end()
-    })
+const client =  new pg.Client(config)
+client.connect()
+client.query('SELECT * from pgtest where objectname=$1', ['1번'] ,(err, res) => {
+//client.query('SELECT $1::text as message', ['Hello world!'],(err, res) => {
+  if(err) throw err;
+  console.log(err,res)
+  client.end()
 })
-
-socket.on('error', console.error)
-socket.connect(options)

@@ -43,7 +43,7 @@ var Database = {
     },
     database_insert:function(data){
         console.log(data)
-        connection.query('INSERT database_details VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);', data, (error, rows, fields) => {
+        connection.query('INSERT database_details VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?); ', data, (error, rows, fields) => {
             if (error) throw error;
             console.log("inert success")
         })
@@ -74,6 +74,30 @@ var Database = {
         connection.query(`UPDATE details SET update_date=now(), result=${resData} WHERE id=${details_id}`, (error, rows, fields) => {
             if (error) throw error;
         });
+    },
+    insert_realtime_table:function(params, time_value){
+        //여기 upsert로 집어넣어야 할듯
+        console.log("db time:################3", time_value)
+        if(time_value === false){ // 시간데이터 없는 경우
+            connection.query('INSERT INTO realtime_table VALUES(?,?,?,'+'now()'+',?,?,?) '+
+            'ON DUPLICATE KEY UPDATE '+ 
+            'objectname=?, logvalue=?, ctrlvalue=?, logtime=now(), object_type=?, com_type=?, com_id=?', params.concat(params), (error, rows, fields) => {
+                if(error) console.log(error)
+                else{
+                    console.log("success");
+                }
+            })
+        }
+        else{//시간데이터 있는 경우
+            connection.query('INSERT INTO realtime_table VALUES(?,?,?,\''+time_value+'\',?,?,?) '+
+            'ON DUPLICATE KEY UPDATE '+
+            'objectname=?, logvalue=?, ctrlvalue=?, logtime=\''+time_value+'\', object_type=?, com_type=?, com_id=?', params.concat(params), (error, rows, fields) => {
+                if(error) console.log(error)
+                else{
+                    console.log("success");
+                }
+            })
+        }
     },
     batch_insert: function(table_name, object_name, value){
         connection.query(`INSERT INTO ${table_name} (object_name, update_time, value) 

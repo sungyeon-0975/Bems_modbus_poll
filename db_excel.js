@@ -5,6 +5,7 @@ const filePath = './DatabaseExcel.xlsx'
 
 var Excel = {
     loadExcelFile: async function(filepath){
+        console.log("start insert")
         const workbook = new ExcelJS.Workbook() // 엑셀의 객체
         await workbook.xlsx.readFile(filePath)
         const sheetData = []
@@ -27,6 +28,7 @@ var Excel = {
                 DBH.database_insert(insert_data);
             }
         }
+        console.log("done")
     }
 }
 Excel.loadExcelFile()

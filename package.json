@@ -11,6 +11,7 @@
   "dependencies": {
     "exceljs": "^4.2.1",
     "jsmodbus": "^4.0.5",
-    "mysql": "^2.18.1"
+    "mysql": "^2.18.1",
+    "pg": "^8.6.0"
   }
 }
