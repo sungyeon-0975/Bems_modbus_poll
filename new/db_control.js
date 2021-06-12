@@ -184,6 +184,7 @@ async function start_sending() {
     for (let i = 1; i < sheetData[1].length; i++) {
         key.push(sheetData[1][i].value)
     }
+    //이걸 루프돌리면 된다.
     for (let i = 2; i < sheetData.length; i++) {
         //데이터를 구조에 맞게 편집
         tmp = {}
@@ -197,39 +198,40 @@ async function start_sending() {
             console.log("can't connect")
             continue;
         }
-        //둘다 통신가능한 경우 S_DB_Id에서 데이터를 가져온다. (비동기)
-        select_update(tmp);
-        // R_DB_Id에서 데이터를 수정한다.(비동기)
+        // SendDatabase에서 값을 긁어서 ReceiveDatabase에 수정해준다.(비동기)
+        //setInterval(() => {select_update(tmp)}, 2000);
+        select_update(tmp)
     }
+
 }
 async function select_update(row) {
     //table명, object명, 등등을 받아서 query를 날려야함.
     var S_database;
     var R_database;
     for (let i = 0; i < DATABASE.length; i++) {
-        if(DATABASE[i].DB_Id == row.S_DB_Id){
+        if (DATABASE[i].DB_Id == row.S_DB_Id) {
             S_database = DATABASE[i]
         }
-        if(DATABASE[i].DB_Id == row.R_DB_Id){
+        if (DATABASE[i].DB_Id == row.R_DB_Id) {
             R_database = DATABASE[i]
         }
-        if(S_database != undefined && R_database != undefined){
+        if (S_database != undefined && R_database != undefined) {
             console.log("[.] find S_database and R_database")
             break;
         }
     }
-    if(S_database == undefined || R_database == undefined){//둘중에 데이터가 하나가 비어있거나 매칭이 안되는경우
+    if (S_database == undefined || R_database == undefined) {//둘중에 데이터가 하나가 비어있거나 매칭이 안되는경우
         console.log("[-] Database ID is wrong")
         console.log("[.] check table : ", row)
         return // 계산하지 않고 함수 종료시킨다
     }
     //ObjectName의 형식이 int거나 char일수 있으므로 이에대한 필터링이 필요함
-    sqlstring = `SELECT * from ${S_database.DB_TableName} where ${S_database.DB_ObjectName}='${row.S_Objectname}';`
-    //
+    sqlstring = `SELECT * from ${S_database.DB_TableName} ` +
+        `where ${S_database.DB_ObjectName}=${S_database.DB_ObjectType == "char" ? "'" + row.S_Objectname + "'" : row.S_Objectname};`
     //
     var value = await (async function () {
         return new Promise((resolve, reject) => {
-            CONNECT[row.S_DB_Id.toString()].query(`SELECT * from ${S_database.DB_TableName} where ${S_database.DB_ObjectName}='${row.S_Objectname}';`, (err, res) => {
+            CONNECT[row.S_DB_Id.toString()].query(sqlstring, (err, res) => {
                 if (err) {
                     console.log(err)
                     resolve()
@@ -240,14 +242,16 @@ async function select_update(row) {
             })
         })
     })()
-    if(value == undefined){
+    if (value == undefined) {
         return
     }
+    console.log(value)
     //ObjectName의 형식이 int거나 char일수 있으므로 이에대한 필터링이 필요함
     console.log(S_database.DB_LogName)
     console.log(value)
-    sqlstring = `UPDATE ${R_database.DB_TableName} SET ${R_database.DB_LogName}=${value[0][S_database.DB_LogName]} WHERE ${R_database.DB_ObjectName}='${row.R_Objectname}';`
-    //
+    sqlstring = `UPDATE ${R_database.DB_TableName} ` +
+        `SET ${R_database.DB_LogName}=${R_database.DB_LogType == 'float' ? parseFloat(value[0][S_database.DB_LogName]) : (R_database.LogType == 'int' ? parseInt(value[0][S_database.DB_LogName]) : "'" + value[0][S_database.DB_LogName] + "'")} ` +
+        `WHERE ${R_database.DB_ObjectName}=${R_database.DB_ObjectType == 'char' ? "'" + row.R_Objectname + "'" : row.R_Objectname};`
     //
     console.log(sqlstring)
     CONNECT[row.S_DB_Id.toString()].query(sqlstring, (err, res) => {
@@ -264,7 +268,9 @@ async function main() {
     //DB의 정보를 받았기 때문에 각 객체에 대해 sql 연결을 진행한다.
     await set_database()
     //Excel에서 다시 데이터를 하나씩 받으며 통신을 시작한다. (비동기로 진행한다)
-    start_sending()
+    intervaltime = 2000
+    setInterval(()=>start_sending(),intervaltime)
+
     //통신이 종료되면 모든 CONNECT의 값들을 end시킨다.(아마 쓸일 거의 없을듯)
     //disconnect_all();
 }
