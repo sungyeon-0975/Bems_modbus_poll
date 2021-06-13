@@ -6,6 +6,7 @@ const filePath = './bidirectionExcel.xlsx'
 
 DATABASE = []
 CONNECT = {}
+ERROR = {}
 // key = [
 //     'DB_Id',         'Details',
 //     'DB_Ip',         'DB_Port',
@@ -196,12 +197,15 @@ async function start_sending() {
             console.log("both exist")
         } else {
             console.log("can't connect")
+            tmp.details = 'S_DB_Id 혹은 R_DB_Id 가 연결되어 있지 않습니다.'
+            ERROR[tmp.Id] = tmp
             continue;
         }
         // SendDatabase에서 값을 긁어서 ReceiveDatabase에 수정해준다.(비동기)
         //setInterval(() => {select_update(tmp)}, 2000);
         select_update(tmp)
     }
+
 
 }
 async function select_update(row) {
@@ -216,15 +220,18 @@ async function select_update(row) {
             R_database = DATABASE[i]
         }
         if (S_database != undefined && R_database != undefined) {
-            console.log("[.] find S_database and R_database")
+            console.log("[ ] find S_database and R_database")
             break;
         }
     }
     if (S_database == undefined || R_database == undefined) {//둘중에 데이터가 하나가 비어있거나 매칭이 안되는경우
         console.log("[-] Database ID is wrong")
         console.log("[.] check table : ", row)
+        tmp.details = 'S_Database 혹은 R_Database의 정보를 불러올 수 없습니다.'
+        ERROR[row.Id] = row
         return // 계산하지 않고 함수 종료시킨다
     }
+    console.log(row)
     //ObjectName의 형식이 int거나 char일수 있으므로 이에대한 필터링이 필요함
     sqlstring = `SELECT * from ${S_database.DB_TableName} ` +
         `where ${S_database.DB_ObjectName}=${S_database.DB_ObjectType == "char" ? "'" + row.S_Objectname + "'" : row.S_Objectname};`
@@ -234,9 +241,17 @@ async function select_update(row) {
             CONNECT[row.S_DB_Id.toString()].query(sqlstring, (err, res) => {
                 if (err) {
                     console.log(err)
+                    row.details = '데이터를 SELECT하는데 오류가 있습니다.'
+                    ERROR[row.Id] = row
                     resolve()
                 } else {
                     console.log(res)
+                    //값이 비어있는 경우 있을 수 있음.
+                    if(res.length == 0){
+                        row.details = 'SELECT한 데이터가 비어있습니다. 즉, S_Objectname을 확인해보세요.'
+                        ERROR[row.Id] = row
+                        resolve()
+                    }
                     resolve(res)
                 }
             })
@@ -257,8 +272,10 @@ async function select_update(row) {
     CONNECT[row.S_DB_Id.toString()].query(sqlstring, (err, res) => {
         if (err) {
             console.log(err)
+            row.details = '데이터가 UPDATE하는데 문제가 발생했습니다. 즉, R_Objectname을 확인해보세요.'
+            ERROR[row.Id] = row
         } else {
-            console.log(res)
+
         }
     })
 }
@@ -270,8 +287,13 @@ async function main() {
     //Excel에서 다시 데이터를 하나씩 받으며 통신을 시작한다. (비동기로 진행한다)
     intervaltime = 2000
     setInterval(()=>start_sending(),intervaltime)
-
     //통신이 종료되면 모든 CONNECT의 값들을 end시킨다.(아마 쓸일 거의 없을듯)
     //disconnect_all();
 }
 main()
+
+process.on('SIGINT', function() {
+    console.log("[+] Caught ninterrupt sigal");
+    console.log("[+] Error list:", ERROR)
+    process.exit();
+});
