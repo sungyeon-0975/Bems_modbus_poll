@@ -106,7 +106,8 @@ function set_database() {
                         user: DATABASE[i].DB_Userid,
                         password: DATABASE[i].DB_Userpwd.toString(),
                         database: DATABASE[i].DB_Name,
-                        connectTimeout: 5000
+                        connectTimeout: 5000,
+                        dateStrings: 'date'
                     }
                     check = await connect_mysql(config)
                     if (check) {
@@ -121,7 +122,8 @@ function set_database() {
                         user: DATABASE[i].DB_Userid,
                         password: DATABASE[i].DB_Userpwd,
                         database: DATABASE[i].DB_Name,
-                        connectTimeout: 5000
+                        connectTimeout: 5000,
+                        dateStrings: 'date'
                     }
                     check = await connect_mysql(config)
                     if (check) {
@@ -136,7 +138,8 @@ function set_database() {
                         port: DATABASE[i].DB_Port,
                         user: DATABASE[i].DB_Userid,
                         password: DATABASE[i].DB_Userpwd,
-                        database: DATABASE[i].DB_Name
+                        database: DATABASE[i].DB_Name,
+                        dateStrings: 'date'//이거 되는지 아직 모름
                     }
                     check = await connect_postgresql(config)//연결이 되면 connection을 반환한다.바로 접근가능해짐
                     if (check) {
@@ -187,12 +190,13 @@ async function start_sending() {
     }
     //이걸 루프돌리면 된다.
     for (let i = 2; i < sheetData.length; i++) {
-        //데이터를 구조에 맞게 편집
+        // 데이터를 구조에 맞게 편집
         tmp = {}
         for (let j = 1; j < sheetData[i].length; j++) {
             tmp[key[j - 1]] = sheetData[i][j].value
         }
-        //M_DB_Id가 존재하는지 && S_DB_Id가 존재하는지
+        // M_DB_Id가 존재하는지 && S_DB_Id가 존재하는지
+        console.log(tmp)
         if (Object.keys(CONNECT).includes(tmp.M_DB_Id.toString()) && Object.keys(CONNECT).includes(tmp.S_DB_Id.toString())) {
             console.log("both exist")
         } else {
@@ -202,11 +206,68 @@ async function start_sending() {
             continue;
         }
         // SendDatabase에서 값을 긁어서 ReceiveDatabase에 수정해준다.(비동기)
-        //setInterval(() => {select_update(tmp)}, 2000);
+        // setInterval(() => {select_update(tmp)}, 2000);
         select_update(tmp)
     }
-
-
+}
+function set_log_datatype(M_database, S_database, value){
+    var tmp;
+    switch (S_database.DB_LogType) {
+        case 'int':
+            tmp = parseFloat(value[0][M_database.DB_LogName]);
+            break;
+        case 'float':
+            tmp = parseInt(value[0][M_database.DB_LogName]);
+            break
+        case 'char':
+            tmp = "'" + value[0][M_database.DB_LogName] + "'"
+            break
+        default:
+            break;
+    }
+    return `SET ${S_database.DB_LogName}=${tmp}`
+}
+function set_control_datatype(M_database, S_database, value) {
+    //데이터가 존재하는 경우
+    if (S_database.DB_ControlName != undefined && M_database.DB_ControlName != undefined) {//둘다 컨트롤 값을 가지는 경우만 반환
+        //데이터 형식에 맞춰주어야 한다.
+        var tmp
+        switch (S_database.DB_ControlType) {
+            case "int":
+                tmp = parseInt(value[0][M_database.DB_ControlName])
+                break;
+            case "float":
+                tmp = parseFloat(value[0][M_database.DB_ControlName])
+                break;
+            case "char":
+                tmp = "'" + value[0][M_database.DB_ControlName] + "'"
+                break;
+            default:
+                break;
+        }
+        //
+        return ` ,${S_database.DB_ControlName}=${tmp}`
+    } else {
+        return ``;
+    }
+}
+function set_time_datatype(M_database, S_database, value) {
+    //데이터가 존재하는 경우
+    if (S_database.DB_TimeName != undefined && M_database.DB_TimeName != undefined) {//둘다 타임값을 가지는 경우만 반환
+        //데이터 형식에 맞춰주어야 한다.
+        var tmp
+        switch (S_database.DB_TimeType) {
+            case "datetime":
+                tmp = "'"+(value[0][M_database.DB_TimeName])+"'";
+                break;
+            default:
+                break;
+        }
+        //
+        return ` ,${S_database.DB_TimeName}=${tmp}`
+    } else {
+        return ``;
+    }
 }
 async function select_update(row) {
     //table명, object명, 등등을 받아서 query를 날려야함.
@@ -247,7 +308,7 @@ async function select_update(row) {
                 } else {
                     console.log(res)
                     //값이 비어있는 경우 있을 수 있음.
-                    if(res.length == 0){
+                    if (res.length == 0) {
                         row.details = 'SELECT한 데이터가 비어있습니다. 즉, M_Objectname을 확인해보세요.'
                         ERROR[row.Id] = row
                         resolve()
@@ -264,10 +325,12 @@ async function select_update(row) {
     //ObjectName의 형식이 int거나 char일수 있으므로 이에대한 필터링이 필요함
     console.log(M_database.DB_LogName)
     sqlstring = `UPDATE ${S_database.DB_TableName} ` +
-        `SET ${S_database.DB_LogName}=${S_database.DB_LogType == 'float' ? parseFloat(value[0][M_database.DB_LogName]) : (S_database.LogType == 'int' ? parseInt(value[0][M_database.DB_LogName]) : "'" + value[0][M_database.DB_LogName] + "'")} ` +
-        `WHERE ${S_database.DB_ObjectName}=${S_database.DB_ObjectType == 'char' ? "'" + row.S_Objectname + "'" : row.S_Objectname};`
+        `${set_log_datatype(M_database, S_database, value)}` +
+        `${set_control_datatype(M_database, S_database, value)}` +
+        `${set_time_datatype(M_database, S_database, value)}` +
+        ` WHERE ${S_database.DB_ObjectName}=${S_database.DB_ObjectType == 'char' ? "'" + row.S_Objectname + "'" : row.S_Objectname};`
     //
-    console.log(sqlstring)
+    console.log("@@@@@@@@@@@@@@@",sqlstring)
     CONNECT[row.S_DB_Id.toString()].query(sqlstring, (err, res) => {
         if (err) {
             console.log(err)
@@ -284,14 +347,14 @@ async function main() {
     await set_database()
     //Excel에서 다시 데이터를 하나씩 받으며 통신을 시작한다. (비동기로 진행한다)
     intervaltime = 2000
-    setInterval(()=>start_sending(),intervaltime)
-    //start_sending()
+    //setInterval(()=>start_sending(),intervaltime)
+    start_sending()
     //통신이 종료되면 모든 CONNECT의 값들을 end시킨다.(아마 쓸일 거의 없을듯)
     //disconnect_all();
 }
 main()
 
-process.on('SIGINT', function() {
+process.on('SIGINT', function () {
     console.log("[+] Caught ninterrupt sigal");
     console.log("[+] Error list:", ERROR)
     process.exit();
