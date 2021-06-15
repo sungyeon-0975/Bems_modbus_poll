@@ -10,7 +10,11 @@ const clients = []
 var IPs = new Array();
 var Channels = {}
 var Details = {}
-
+var channel_range = {}
+function range() {
+    start = 0
+    end  = 0
+}
 function IP() {
     id = 0
     ch_name = ""
@@ -61,6 +65,19 @@ modbus_poll()
 async function modbus_poll(){
     await Excel.loadExcelFile()
     await getInfo()
+    //modbus poll시작하기 전에 excel정합성 확인
+    for(var key in channel_range){
+        console.log("key",key)
+        h = channel_range[key].start
+        t = channel_range[key].end
+        for (var i=0; i < Details[key].length; i++) {
+            if (Details[key][i].m_addr < h || Details[key][i].m_addr > t) {
+                console.log("excel데이터 정합성 오류 in detail id ",Details[key][i].id)
+                return 
+            }
+        }
+    }
+    console.log("excel 정합성ok")
     console.log("start 통신")//,IPs, Channels, Details)
     modbusStart()
 }
@@ -84,6 +101,7 @@ function getInfo(){
         rows = await DBH.device_select("modbus_channels")
         rows.forEach(row => {
             tmp = new Channel();
+            r = new range();
             tmp.id = row["id"]
             tmp.fr_name = row["name"]
             tmp.channel_id = row["channel_id"]
@@ -94,6 +112,9 @@ function getInfo(){
             tmp.active = row["active"]
             Channels[tmp.channel_id].push(tmp)//channelname에 맞게 리스트에 차례로 삽입한다. 나중에 패킷 보낼때 사용함.'
             Details[tmp.id] = []
+            r.start = tmp.start_address
+            r.end = tmp.start_address + tmp.read_byte -1
+            channel_range[tmp.id] = r
         })
         rows = await DBH.device_select("modbus_details")
         rows.forEach(row => {
