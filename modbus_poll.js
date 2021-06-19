@@ -67,12 +67,11 @@ async function modbus_poll(){
     await getInfo()
     //modbus poll시작하기 전에 excel정합성 확인
     for(var key in channel_range){
-        console.log("key",key)
         h = channel_range[key].start
         t = channel_range[key].end
         for (var i=0; i < Details[key].length; i++) {
             if (Details[key][i].m_addr < h || Details[key][i].m_addr > t) {
-                console.log("excel데이터 정합성 오류 in detail id ",Details[key][i].id)
+                console.log("excel error in detail id ",Details[key][i].id)
                 return 
             }
         }
@@ -84,68 +83,72 @@ async function modbus_poll(){
 
 function getInfo(){
     return new Promise(async function(resolve, reject) {
-        var rows = await DBH.device_select("modbus_ip")
-        rows.forEach(row => {
-            tmp = new IP();
-            tmp.id = row["id"]
-            tmp.ch_name = row["name"]
-            tmp.com_type = row["com_type"]
-            tmp.ip_address = row["ip_address"]
-            tmp.port = row["port"]
-            tmp.period = row["period"]
-            tmp.wait_time = row["wait_time"]
-            tmp.active = row["active"]
-            IPs.push(tmp)//리스트에 패킷데이터를 저장한다.
-            Channels[tmp.id] = [] //ChannelName을 key값으로 리스트를 생성해준다. 리스트에는 frames들이 들어갈계획  
-        })
-        rows = await DBH.device_select("modbus_channels")
-        rows.forEach(row => {
-            tmp = new Channel();
-            r = new range();
-            tmp.id = row["id"]
-            tmp.fr_name = row["name"]
-            tmp.channel_id = row["channel_id"]
-            tmp.function_code = row["function_code"]
-            tmp.device_address = row["device_address"]
-            tmp.start_address = row["start_address"]
-            tmp.read_byte = row["read_byte"]
-            tmp.active = row["active"]
-            Channels[tmp.channel_id].push(tmp)//channelname에 맞게 리스트에 차례로 삽입한다. 나중에 패킷 보낼때 사용함.'
-            Details[tmp.id] = []
-            r.start = tmp.start_address
-            r.end = tmp.start_address + tmp.read_byte -1
-            channel_range[tmp.id] = r
-        })
-        rows = await DBH.device_select("modbus_details")
-        rows.forEach(row => {
-            tmp = new Detail();
-            tmp.object_name  = row['object_name']
-            tmp.object_type = row['object_type']
-            tmp.id = row["id"]
-            tmp.units  = row['units']
-            tmp.low_limit = row['low_limit']
-            tmp.high_limit  = row['high_limit']
-            tmp.m_enable = row['m_enable']
-            tmp.m_ip = row['m_ip']
-            tmp.m_channel = row['m_channel']
-            tmp.m_func = row['m_func']
-            tmp.m_addr = row['m_addr']
-            tmp.m_offsetbit = row['m_offsetbit']
-            tmp.m_dattype = row['m_dattype']
-            tmp.m_r_scale = row['m_r_scale']
-            tmp.m_r_offset = row['m_r_offset']
-            tmp.m_w_ip = row['m_w_ip']
-            tmp.m_w_id = row['m_w_id']
-            tmp.m_w_fc = row['m_w_fc']
-            tmp.m_w_addr = row['m_w_addr']
-            tmp.m_w_dattype = row['m_w_dattype']
-            tmp.m_w_scale = row['m_w_scale']
-            tmp.m_w_offset = row['m_w_offset']
-            Details[tmp.m_channel].push(tmp)
-        });
-        console.log("info 완료")
-            resolve()
-        });
+        try{
+            var rows = await DBH.device_select("modbus_ip")
+            rows.forEach(row => {
+                tmp = new IP();
+                tmp.id = row["id"]
+                tmp.ch_name = row["name"]
+                tmp.com_type = row["com_type"]
+                tmp.ip_address = row["ip_address"]
+                tmp.port = row["port"]
+                tmp.period = row["period"]
+                tmp.wait_time = row["wait_time"]
+                tmp.active = row["active"]
+                IPs.push(tmp)//리스트에 패킷데이터를 저장한다.
+                Channels[tmp.id] = [] //ChannelName을 key값으로 리스트를 생성해준다. 리스트에는 frames들이 들어갈계획  
+            })
+            rows = await DBH.device_select("modbus_channels")
+            rows.forEach(row => {
+                tmp = new Channel();
+                r = new range();
+                tmp.id = row["id"]
+                tmp.fr_name = row["name"]
+                tmp.channel_id = row["channel_id"]
+                tmp.function_code = row["function_code"]
+                tmp.device_address = row["device_address"]
+                tmp.start_address = row["start_address"]
+                tmp.read_byte = row["read_byte"]
+                tmp.active = row["active"]
+                Channels[tmp.channel_id].push(tmp)//channelname에 맞게 리스트에 차례로 삽입한다. 나중에 패킷 보낼때 사용함.'
+                Details[tmp.id] = []
+                r.start = tmp.start_address
+                r.end = tmp.start_address + tmp.read_byte -1
+                channel_range[tmp.id] = r
+            })
+            rows = await DBH.device_select("modbus_details")
+            rows.forEach(row => {
+                tmp = new Detail();
+                tmp.object_name  = row['object_name']
+                tmp.object_type = row['object_type']
+                tmp.id = row["id"]
+                tmp.units  = row['units']
+                tmp.low_limit = row['low_limit']
+                tmp.high_limit  = row['high_limit']
+                tmp.m_enable = row['m_enable']
+                tmp.m_ip = row['m_ip']
+                tmp.m_channel = row['m_channel']
+                tmp.m_func = row['m_func']
+                tmp.m_addr = row['m_addr']
+                tmp.m_offsetbit = row['m_offsetbit']
+                tmp.m_dattype = row['m_dattype']
+                tmp.m_r_scale = row['m_r_scale']
+                tmp.m_r_offset = row['m_r_offset']
+                tmp.m_w_ip = row['m_w_ip']
+                tmp.m_w_id = row['m_w_id']
+                tmp.m_w_fc = row['m_w_fc']
+                tmp.m_w_addr = row['m_w_addr']
+                tmp.m_w_dattype = row['m_w_dattype']
+                tmp.m_w_scale = row['m_w_scale']
+                tmp.m_w_offset = row['m_w_offset']
+                Details[tmp.m_channel].push(tmp)
+            });
+            console.log("info 완료")
+                resolve()
+        }catch(e){
+            console.log("get network info error : ", e)
+        }
+    });
 }
 
 function modbusStart() {
@@ -250,14 +253,13 @@ function modbusStart() {
                             DBH.realtime_upsert(sensors[se].object_name, sensors[se].m_r_scale*resData + sensors[se].m_r_offset,sensors[se].object_type)     
                             }
                         }).catch(function () {
+                            console.log("socket network error")
                             console.error(arguments)
-                            console.log("여기 에러")
                             //sockets[i].end() 오류가 생겨도 닫지 않는다. 다른 frame 통신을 위해서
                         })
                     },2000)
                 }
             }
-
         });
         sockets[i].on("error", function () {//에러가 발생하면 어떻게 할건지
             console.log("errored !!!!!!", IPs[i].ip_address)

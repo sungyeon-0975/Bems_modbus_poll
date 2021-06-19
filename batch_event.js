@@ -46,17 +46,22 @@ const jobs = [
 
 
 new cronJob('*/10 * * * * *',  function() {
+    try{
     console.log('this runs every 10 seconds', new Date());
     DBH.batch_device_select('realtime_table', function(rows){
         rows.forEach(row => { 
             object_values[row["object_name"]].push(row["logvalue"])
         })
         console.log(object_values)
-    })       
+    }) 
+    }catch(e){
+        console.log("10second batch error : ",e)
+    }      
     // setTimeout(()=>console.log('after timeout'),11000)
 }).start();
 
 new cronJob('0 */10 * * * *', () => {
+    try{
     console.log('this runs every 10 minute', new Date());
     for (const [key, value] of Object.entries(object_values)) {
         const sum = value.reduce((a, b) => a + b, 0);
@@ -64,18 +69,25 @@ new cronJob('0 */10 * * * *', () => {
         DBH.batch_insert('10minute', key , avg )
         object_values[key] = []
       }
+    }catch(e){
+        console.log("10 minte batch error : ",e)
+    }
 }).start();
 
 jobs.forEach(job => {
     new cronJob(job.pattern, () => {
-        console.log(job.message, new Date());
-        for (const [key, value] of Object.entries(object_values)) {
-            DBH.batch_select(job.get, key, job.time_interval, function (rows) {
-                if (rows[0]["avg(logvalue)"] != null){
-                    DBH.batch_insert(job.table, key, rows[0]["avg(logvalue)"])
-                }
-            })
-          }
+        try{
+            console.log(job.message, new Date());
+            for (const [key, value] of Object.entries(object_values)) {
+                DBH.batch_select(job.get, key, job.time_interval, function (rows) {
+                    if (rows[0]["avg(logvalue)"] != null){
+                        DBH.batch_insert(job.table, key, rows[0]["avg(logvalue)"])
+                    }
+                })
+            }
+        }catch(e){
+            console.log(job.table,"batch error: " , e )
+        }
     }).start();    
 });
 
