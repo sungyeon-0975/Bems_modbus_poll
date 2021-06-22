@@ -2,7 +2,7 @@ var mysql = require('mysql')
 var dbconfig = {
     host     : 'localhost',
     user     : 'root',
-    password : '123123',
+    password : '4msys',
     database : 'bems'
   }
 const connection = mysql.createConnection(dbconfig);
@@ -10,73 +10,72 @@ connection.connect();
 
 var Database = {
     device_select: function(table, callback){
-        // connection = mysql.createConnection(dbconfig);
-        // connection.connect();
         return new Promise(function(resolve, reject) {
             connection.query(`SELECT * from ${table}`, (error, rows, fields) => {
                 if (error) throw error;
-                // connection.end();
                 resolve(rows);
             })
         })
     },
     device_delete:  function(tablename){
-        // // console.log("delete table name ",tablename)
-        // connection = mysql.createConnection(dbconfig);
-        // connection.connect();
         return new Promise(function(resolve, reject) {
-            connection.query(`DELETE FROM ${tablename}` , function() {
-                // connection.end();
+            connection.query(`DELETE FROM ${tablename}` , (error, rows, fields) => {
+                if (error) throw error;
                 resolve();
             });
           });
     },
     device_insert: function(page,data){
-        // console.log("insert table name ",page)
-        // connection = mysql.createConnection(dbconfig);
-        // connection.connect();
         if(page == 0){//Channel
             return new Promise(function(resolve, reject) {
+                try{
                 connection.query(`INSERT INTO modbus_ip (id,name,com_type,ip_address,port,period,wait_time,active) 
-                VALUES(${data.Id},'${data.Name}','${data.ComType}','${data.IpAddress}',${data.Port},${data.Period},${data.WaitTime},${data.Active})`, function() {
-                    // connection.end();
+                VALUES(${data.Id},'${data.Name}','${data.ComType}','${data.IpAddress}',${data.Port},${data.Period},${data.WaitTime},${data.Active})`, (error,rows,field) => {
+                    if(error) throw error;
                     resolve();
                 });
+                }catch(e){
+                    console.log(e)
+                }
+    
               });
         }
         else if(page == 1){//Frame
             return new Promise(function(resolve, reject) {
+                try{
                 connection.query(`INSERT INTO modbus_channels (id,name,channel_id,function_code,device_address,start_address,read_byte,active)
-                VALUES(${data.Id},'${data.Name}',${data.ChannelId},${data.FunctionCode},${data.DeviceAddress},${data.StartAddress},${data.ReadByte},${data.Active})`, function() {
-                    // connection.end();
+                VALUES(${data.Id},'${data.Name}',${data.ChannelId},${data.FunctionCode},${data.DeviceAddress},${data.StartAddress},${data.ReadByte},${data.Active})`,(error,rows,field) => {
+                    if(error) throw error;
                     resolve();
                 });
+                }catch(e){
+                    console.log(e)
+                }
               });
         }
         else{//Detail
             return new Promise(function(resolve, reject) {
+                try{
                 connection.query(`INSERT INTO modbus_details (object_name,object_type,id,units,low_limit,high_limit,m_enable,m_ip,m_channel ,m_func ,m_addr ,m_offsetbit ,m_dattype ,m_r_scale ,m_r_offset ,m_w_ip ,m_w_id ,m_w_fc ,m_w_addr ,m_w_dattype ,m_w_scale ,m_w_offset )
-                VALUES('${data.object_name}','${data.object_type}',${data.id},'${data.units}','${data.low_limit}','${data.high_limit}',${data.m_enable},${data.m_ip},${data.m_channel},${data.m_func},${data.m_addr},${data.m_offsetbit},${data.m_datatype},${data.m_r_scale},${data.m_r_offset},${data.m_w_ip},${data.m_w_id},${data.m_w_fc},${data.m_w_addr},${data.m_w_datatype},${data.m_w_scale},${data.m_w_offset})`,  function() {
-                    // connection.end();
+                VALUES('${data.object_name}','${data.object_type}',${data.id},'${data.units}','${data.low_limit}','${data.high_limit}',${data.m_enable},${data.m_ip},${data.m_channel},${data.m_func},${data.m_addr},${data.m_offsetbit},${data.m_datatype},${data.m_r_scale},${data.m_r_offset},${data.m_w_ip},${data.m_w_id},${data.m_w_fc},${data.m_w_addr},${data.m_w_datatype},${data.m_w_scale},${data.m_w_offset})`, (error,rows,field) => {
+                    if(error) throw error;
                     resolve();
                 });
+                }catch(e){
+                    console.log(e)
+                }
               });
            }
        
     },
     database_insert:function(data){
-        // connection = mysql.createConnection(dbconfig);
-        // connection.connect();
         console.log(data)
         connection.query('INSERT database_details VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);', data, (error, rows, fields) => {
             if (error) throw error;
             console.log("inert success")
         })
-        // connection.end();
     },
     database_get_ids:async function(){
-        // connection = mysql.createConnection(dbconfig);
-        // connection.connect();
         return new Promise(function(resolve, reject){
             connection.query('SELECT db_id FROM database_details;', (error, rows, fields) => {
                 if (error) throw error;
@@ -87,64 +86,43 @@ var Database = {
                 }
                 resolve(db_ids)
             });
-            // connection.end();
         });
        
     },
     database_get_row:async function(db_id){
-        // connection = mysql.createConnection(dbconfig);
-        // connection.connect();
         return new Promise(function(resolve, reject){
             connection.query('SELECT * FROM database_details where db_id=?',[db_id], (error, rows, fields) => {
                 if (error) throw error;
                 resolve(rows[0])
             });
-            // connection.end();
         });
         
     },
-    realtime_upsert:function(object_name, resData,object_type){
-        // connection = mysql.createConnection(dbconfig);
-        // connection.connect();
-        connection.query(`insert into realtime_table (object_name, logvalue, logtime,object_type, com_type)
-        values ('${object_name}', ${resData}, now(),'${object_type}','mysql') as t
+    realtime_upsert:function(id,object_name, resData,object_type){
+        connection.query(`insert into realtime_table (id,object_name, logvalue, logtime,object_type, com_type)
+        values (${id},'${object_name}', ${resData}, now(),'${object_type}','mysql') as t
         on duplicate key update logvalue = t.logvalue, logtime = t.logtime`, (error, rows, fields) => {
             if (error) throw error;
         });
         // connection.end();
         
     },
-    // realtime_insert: function(data){
-    //     connection.query(`insert realtime_table(object_name,logtime,object_type,com_type) 
-    //     values('${data.object_name}',now(),'${data.object_type}','mysql')`,(error, rows, fields) => {
-    //         if (error) throw error;
-    //     });
-    // },
     batch_device_select : function(table, callback){
-        // connection = mysql.createConnection(dbconfig);
-        // connection.connect();
         connection.query(`SELECT * from ${table}`, (error, rows, fields) => {
             if (error) throw error;
-            // connection.end();
             callback(rows);
         })
     },
     batch_insert: function(table_name, object_name, value){
-        // connection = mysql.createConnection(dbconfig);
-        // connection.connect();
         connection.query(`INSERT INTO ${table_name} (object_name, logtime, logvalue) 
         VALUES ("${object_name}",now(),${value})`, (error, rows, fields) => {
             if (error) throw error;
-            // connection.end();
         });
         
     },
     batch_select : function(table_name,object_name, time_interval,callback){
-        // connection = mysql.createConnection(dbconfig);
-        // connection.connect();
         connection.query(`SELECT avg(logvalue) from ${table_name} where object_name = "${object_name}" and logtime between timestamp(DATE_SUB(NOW(), INTERVAL ${time_interval})) and timestamp(NOW())`, (error, rows, fields) => {
             if (error) throw error;
-            // connection.end();
             callback(rows);
         });
         

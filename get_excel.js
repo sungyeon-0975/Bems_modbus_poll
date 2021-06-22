@@ -55,10 +55,12 @@ var Excel = {
     loadExcelFile:  function(filepath){
         return new Promise(async function(resolve, reject) {
             try{
+                var page,i
+                var sheetData
                 const workbook = new ExcelJS.Workbook() // 엑셀의 객체
                 await workbook.xlsx.readFile(filePath)
-                for (let page = 0; page < 3; page++) {
-                    const sheetData = []
+                for (page = 0; page < 3; page++) {
+                    sheetData = []
                     const worksheet = workbook.worksheets[page] // 첫 번째 sheet 선택
                     const options = { includeEmpty: true }
                     // worksheet에 접근하여 데이터를 읽어옴
@@ -70,7 +72,8 @@ var Excel = {
                     })
                     if( page == 0){ // Device 페이지
                         await DBH.device_delete('modbus_ip')// DB깔끔하게 밀어버리기
-                        for (let i = 2; i < sheetData.length; i++) {
+                        for (i = 2; i < sheetData.length; i++) {
+                            if (sheetData[i][1].value == '*')break
                             IP.Id           =sheetData[i][1].value
                             IP.Name	        =sheetData[i][2].value
                             IP.ComType		=sheetData[i][3].value
@@ -87,7 +90,8 @@ var Excel = {
                     }
                     else if(page ==1){//Frame 페이지
                         await DBH.device_delete('modbus_channels')// DB깔끔하게 밀어버리기
-                        for (let i = 2; i < sheetData.length; i++) {
+                        for (i = 2; i < sheetData.length; i++) {
+                            if (sheetData[i][1].value == '*')break
                             Channel.Id              =sheetData[i][1].value
                             Channel.Name	        =sheetData[i][2].value
                             Channel.ChannelId		=sheetData[i][3].value
@@ -104,7 +108,8 @@ var Excel = {
                     else{//Detail 페이지
                         await DBH.device_delete('modbus_details')// DB깔끔하게 밀어버리기
                         await DBH.device_delete('realtime_table')
-                        for (let i = 2; i < sheetData.length; i++) {
+                        for (i = 2; i < sheetData.length; i++) {
+                            if (sheetData[i][1].value == '*')break
                             Detail.object_name   =sheetData[i][1].value
                             Detail.object_type   =sheetData[i][2].value
                             Detail.id            =sheetData[i][3].value
@@ -137,7 +142,8 @@ var Excel = {
                 console.log("get_excel완료")
                 resolve()
             }catch(e){
-                   console.log("load excel error : " ,e) 
+                // console.log("load excel error : " , page, i-1, sheetData[i]) 
+                console.log(e)
             }
         });
     }

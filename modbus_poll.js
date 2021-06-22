@@ -161,41 +161,44 @@ function modbusStart() {
             'host': IPs[i].ip_address,
             'port': IPs[i].port
         }
+
+
         sockets[i].on("connect", async function () { //소켓이 연결되는 경우 어떻게 사용할 건지
             console.log("connected!!!!", IPs[i].ip_address)
             var targetchannels = Channels[IPs[i].id]
             console.log("targetFrame!!!", targetchannels)
-            for (let fi = 0; fi < targetchannels.length; fi++) {//frame의 개수만큼 반복하는 코드
-                if (targetchannels[fi].active == 1) { // active 상태일때만 반복시킴
-                    console.log("타켓을 보자", targetchannels[fi])
-                    if (targetchannels[fi].active == 0)continue
-                    switch (targetchannels[fi].function_code) {
-                        case 0://Read Coils
-                            func = clients[i].readCoils(targetchannels[fi].start_address, targetchannels[fi].read_byte)
-                            break
-                        case 1://Read Discrete Input
-                            func = clients[i].readDiscreteInput(targetchannels[fi].start_address, targetchannels[fi].read_byte)
-                            break
-                        case 3://Read Holding Registers
-                            func = clients[i].readHoldingRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
-                            break
-                        case 4://Read Input Registers
-                            func = clients[i].readInputRegister(targetchannels[fi].start_address, targetchannels[fi].read_byte)
-                            break
-                    }
-                    setInterval(()=>{
+
+            setInterval(()=>{
+                for (let fi = 0; fi < targetchannels.length; fi++) {//frame의 개수만큼 반복하는 코드
+                    if (targetchannels[fi].active == 1) { // active 상태일때만 반복시킴
+                        // console.log("타켓을 보자", targetchannels[fi])
+                        if (targetchannels[fi].active == 0)continue
+                        switch (targetchannels[fi].function_code) {
+                            case 0://Read Coils
+                                func = clients[i].readCoils(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                break
+                            case 1://Read Discrete Input
+                                func = clients[i].readDiscreteInput(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                break
+                            case 3://Read Holding Registers
+                                func = clients[i].readHoldingRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                break
+                            case 4://Read Input Registers
+                                func = clients[i].readInputRegister(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                break
+                        }
                         func.then(function (resp) {
+                            var se,sensors,targetIdx,resData
                             modbus_result = resp.response._body._valuesAsBuffer
-                            console.log(fi, modbus_result,targetchannels[fi].read_byte)
+                            console.log(fi, modbus_result,Buffer.byteLength(modbus_result, 'utf8'),targetchannels[fi].read_byte)
                             //이제 여기서 데이터를 정규화 하는 작업 해야함
                             sensors = Details[targetchannels[fi].id]//detail객체
                             if (sensors === undefined || sensors.length == 0) return //Detail이 정의되어 있지 않은 경우 연산없이 넘긴다.
                             console.log("set read:", targetchannels[fi].start_address, targetchannels[fi].read_byte)
-                            var targetIdx
-                            var resData
-                            for (let se = 0; se < sensors.length; se++) {
+                            for (se = 0; se < sensors.length; se++) {
                                 if (sensors[se].m_enable == 0)continue
                                 targetIdx = (sensors[se].m_addr - targetchannels[fi].start_address)*2
+                                try{
                                 switch (sensors[se].m_dattype) {
                                     case 0://unsigned int 16bit AB
                                         resData = modbus_result.readUInt16BE(targetIdx)
@@ -207,37 +210,46 @@ function modbusStart() {
                                         resData = modbus_result.readInt32BE(targetIdx)
                                         break;
                                     case 3://3 : 32bit signed int - CD AB
-                                        resData = modbus_result.swap32().swap16().readInt32BE(targetIdx)
+                                        res = modbus_result.slice(targetIdx,targetIdx + 8).swap32().swap16()
+                                        resData = res.readInt32BE()
                                         break;
                                     case 4:// 4 :  32bit signed int - BA DC
-                                        resData = modbus_result.swap16().readInt32BE(targetIdx)
+                                        res = modbus_result.slice(targetIdx,targetIdx + 8).swap16()
+                                        resData = res.readInt32BE()
                                         break;
                                     case 5://5 :  32bit signed int - DC BA
-                                        resData = modbus_result.swap32().readInt32BE(targetIdx)
+                                        res = modbus_result.slice(targetIdx,targetIdx + 8).swap32()
+                                        resData = res.readInt32BE()
                                         break;
                                     case 6://6 : float  - AB CD
-                                        resData = modbus_result.readFloatBE(targetIdx)
+                                        resData = modbus_result.slice(targetIdx,targetIdx + 8).readFloatLE()
                                         break;
                                     case 7://7 : float - CD AB
-                                        resData = modbus_result.swap32().swap16().readFloatBE(targetIdx)
+                                        res = modbus_result.slice(targetIdx,targetIdx + 8).swap32().swap16()
+                                        resData = res.readFloatBE()
                                         break;
                                     case 8://8 : float - BA DC
-                                        resData = modbus_result.swap16().readFloatBE(targetIdx)
+                                        res = modbus_result.slice(targetIdx,targetIdx + 4).swap16()
+                                        resData = res.readFloatBE()
                                         break;
                                     case 9://9 : float - DC BA
-                                        resData = modbus_result.swap32().readFloatBE(targetIdx)
+                                        res = modbus_result.slice(targetIdx,targetIdx + 4).swap32()
+                                        resData = res.readFloatBE()
                                         break;
                                     case 10://10 : 64bit double - AB CD EF GH
                                         resData = modbus_result.readDoubleBE(targetIdx)
                                         break;
                                     case 11://11 : 64bit double - GH EF CD AB
-                                        resData = modbus_result.swap64().swap16().readDoubleBE(targetIdx)
+                                        res =  modbus_result.slice(targetIdx,targetIdx + 8).swap64().swap16()
+                                        resData = res.readDoubleBE()
                                         break;
                                     case 12://12 : 64bit double - BA DC FE HG
-                                        resData = modbus_result.swap16().readDoubleBE(targetIdx)
+                                        res =  modbus_result.slice(targetIdx,targetIdx + 4).swap16()
+                                        resData = res.readDoubleBE()
                                         break;
                                     case 13://13 : 64bit double - HG FE DC BA
-                                        resData = modbus_result.swap64().readDoubleBE(targetIdx)
+                                        res =  modbus_result.slice(targetIdx,targetIdx + 8).swap64()
+                                        resData = res.readDoubleBE()
                                         break;
                                     case 14://14 : 1bit value
                                         const arr = Array.from({length: 16}, () => 0);
@@ -248,18 +260,24 @@ function modbusStart() {
                                         }
                                         resData = parseInt(arr[sensors[se].m_offsetbit])
                                         break;
+                                    }
+                                }catch(e){
+                                    console.log(e)
+                                    resData = 0 //받는데이터가 요청한 데이터보다 짧을때 처리(na)
                                 }
-                            console.log("resData:", resData)
-                            DBH.realtime_upsert(sensors[se].object_name, sensors[se].m_r_scale*resData + sensors[se].m_r_offset,sensors[se].object_type)     
+                            if (resData == NaN) resData = 0
+                            console.log("resData:", resData,"(id:",sensors[se].id,")")
+                            DBH.realtime_upsert(sensors[se].id, sensors[se].object_name, sensors[se].m_r_scale*resData + sensors[se].m_r_offset,sensors[se].object_type)     
                             }
                         }).catch(function () {
-                            console.log("socket network error")
+                            console.log("socket network error" )
+                            console.log(IPs[i].ip_address)
                             console.error(arguments)
                             //sockets[i].end() 오류가 생겨도 닫지 않는다. 다른 frame 통신을 위해서
                         })
-                    },2000)
+                    }
                 }
-            }
+            },2000)
         });
         sockets[i].on("error", function () {//에러가 발생하면 어떻게 할건지
             console.log("errored !!!!!!", IPs[i].ip_address)
