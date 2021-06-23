@@ -4,6 +4,7 @@ const Modbus = require('jsmodbus')
 const net = require('net')
 const { timeStamp } = require('console')
 const { stringify } = require('querystring')
+const { channel_inc_err } = require('./database.js')
 const sockets = []
 const clients = []
 
@@ -159,7 +160,9 @@ function modbusStart() {
         //tcp설정
         var options = {
             'host': IPs[i].ip_address,
-            'port': IPs[i].port
+            'port': IPs[i].port,
+            'autoReconnect' : true,
+            'timeout' : IPs[i].wait_time
         }
 
 
@@ -184,10 +187,12 @@ function modbusStart() {
                                 func = clients[i].readHoldingRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
                                 break
                             case 4://Read Input Registers
-                                func = clients[i].readInputRegister(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                func = clients[i].readInputRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
                                 break
                         }
+                        DBH.channel_inc_tx(targetchannels[fi].id)
                         func.then(function (resp) {
+                            DBH.channel_inc_rx(targetchannels[fi].id)
                             var se,sensors,targetIdx,resData
                             modbus_result = resp.response._body._valuesAsBuffer
                             console.log(fi, modbus_result,Buffer.byteLength(modbus_result, 'utf8'),targetchannels[fi].read_byte)
@@ -262,14 +267,15 @@ function modbusStart() {
                                         break;
                                     }
                                 }catch(e){
-                                    console.log(e)
-                                    resData = 0 //받는데이터가 요청한 데이터보다 짧을때 처리(na)
+                                    console.log("data transform error : ",e)
+                                    resData = NaN //받는데이터가 요청한 데이터보다 짧을때 처리(na)
                                 }
-                            if (resData == NaN) resData = 0
-                            console.log("resData:", resData,"(id:",sensors[se].id,")")
-                            DBH.realtime_upsert(sensors[se].id, sensors[se].object_name, sensors[se].m_r_scale*resData + sensors[se].m_r_offset,sensors[se].object_type)     
-                            }
+                            if (resData != NaN){
+                                console.log("resData:", resData,"(id:",sensors[se].id,")")
+                                DBH.realtime_upsert(sensors[se].id, sensors[se].object_name, sensors[se].m_r_scale*resData + sensors[se].m_r_offset,sensors[se].object_type)     
+                            }}
                         }).catch(function () {
+                            DBH.channel_inc_err(targetchannels[fi].id)
                             console.log("socket network error" )
                             console.log(IPs[i].ip_address)
                             console.error(arguments)
@@ -277,7 +283,7 @@ function modbusStart() {
                         })
                     }
                 }
-            },2000)
+            },IPs[i].period)
         });
         sockets[i].on("error", function () {//에러가 발생하면 어떻게 할건지
             console.log("errored !!!!!!", IPs[i].ip_address)

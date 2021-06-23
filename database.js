@@ -25,6 +25,33 @@ var Database = {
             });
           });
     },
+    channel_inc_tx: function(id){
+        return new Promise(function(resolve, reject) {
+            connection.query(`UPDATE modbus_channels SET tx = (tx + 1)%1000 
+            WHERE id = ${id}` , (error, rows, fields) => {
+                if (error) throw error;
+                resolve();
+            });
+          });
+    },
+    channel_inc_rx: function(id){
+        return new Promise(function(resolve, reject) {
+            connection.query(`UPDATE modbus_channels SET rx = (rx + 1)%1000 
+            WHERE id = ${id}` , (error, rows, fields) => {
+                if (error) throw error;
+                resolve();
+            });
+          });
+    },
+    channel_inc_err: function(id){
+        return new Promise(function(resolve, reject) {
+            connection.query(`UPDATE modbus_channels SET err = (err + 1)%1000 
+            WHERE id = ${id}` , (error, rows, fields) => {
+                if (error) throw error;
+                resolve();
+            });
+          });
+    },
     device_insert: function(page,data){
         if(page == 0){//Channel
             return new Promise(function(resolve, reject) {
@@ -125,7 +152,6 @@ var Database = {
             if (error) throw error;
             callback(rows);
         });
-        
     }
 }
 module.exports = Database
