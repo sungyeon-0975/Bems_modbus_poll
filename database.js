@@ -84,7 +84,7 @@ var Database = {
             return new Promise(function(resolve, reject) {
                 try{
                 connection.query(`INSERT INTO modbus_details (object_name,object_type,id,units,low_limit,high_limit,m_enable,m_ip,m_channel ,m_func ,m_addr ,m_offsetbit ,m_dattype ,m_r_scale ,m_r_offset ,m_w_ip ,m_w_id ,m_w_fc ,m_w_addr ,m_w_dattype ,m_w_scale ,m_w_offset )
-                VALUES('${data.object_name}','${data.object_type}',${data.id},'${data.units}','${data.low_limit}','${data.high_limit}',${data.m_enable},${data.m_ip},${data.m_channel},${data.m_func},${data.m_addr},${data.m_offsetbit},${data.m_datatype},${data.m_r_scale},${data.m_r_offset},${data.m_w_ip},${data.m_w_id},${data.m_w_fc},${data.m_w_addr},${data.m_w_datatype},${data.m_w_scale},${data.m_w_offset})`, (error,rows,field) => {
+                VALUES('${data.object_name}','${data.object_type}',${data.id},'${data.units}','${data.low_limit}','${data.high_limit}',${data.m_enable},${data.m_ip},${data.m_channel},${data.m_func},'${data.m_addr}',${data.m_offsetbit},${data.m_datatype},${data.m_r_scale},${data.m_r_offset},${data.m_w_ip},${data.m_w_id},${data.m_w_fc},'${data.m_w_addr}',${data.m_w_datatype},${data.m_w_scale},${data.m_w_offset})`, (error,rows,field) => {
                     if(error) throw error;
                     resolve();
                 });
@@ -152,6 +152,43 @@ var Database = {
             if (error) throw error;
             callback(rows);
         });
-    }
+    },
+    //output에 사용하는 함수
+    select_not_null : function(com_type){
+        return new Promise(function(resolve, reject) {
+            connection.query(`SELECT object_name,ctrlvalue from realtime_table where ctrlvalue is not null and com_type = '${com_type}'`, (error, rows, fields) => {
+                if (error) throw error;
+                resolve(rows);
+            });
+          });
+    },
+    get_modbus_detail : function(object_name){
+        return new Promise(function(resolve, reject) {
+            connection.query(`select * from modbus_details where object_name = '${object_name}'`, (error, rows, fields) => {
+                if (error) throw error;
+                resolve(rows[0]);
+            });
+          });
+    },
+    get_ip_addr : function(id){
+        return new Promise(function(resolve, reject) {
+            try{
+                connection.query(`select ip_address,port from modbus_ip where id = ${id}`, (error, rows, fields) => {
+                    if (error) throw error;
+                    resolve(rows[0]);
+                });
+            }catch(e){
+            console.log(e)
+            }
+        });
+    },
+    recover_realtime: function(object_name){
+        return new Promise(function(resolve, reject) {
+            connection.query(`update realtime_table set ctrlvalue = null where object_name = '${object_name}'`, (error, rows, fields) => {
+                if (error) throw error;
+                resolve();
+            });
+          });
+    },
 }
 module.exports = Database

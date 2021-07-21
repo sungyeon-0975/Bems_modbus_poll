@@ -125,13 +125,13 @@ var Excel = {
                             Detail.m_datatype   =sheetData[i][13].value
                             Detail.m_r_scale    =sheetData[i][14].value
                             Detail.m_r_offset   =sheetData[i][15].value
-                            Detail.m_w_ip       =(typeof sheetData[i][16] === 'undefined') ? null : sheetData[i][16].value
-                            Detail.m_w_id       =(typeof sheetData[i][17] === 'undefined') ? null : sheetData[i][17].value
-                            Detail.m_w_fc       =(typeof sheetData[i][18] === 'undefined') ? null : sheetData[i][18].value
-                            Detail.m_w_addr     =(typeof sheetData[i][19] === 'undefined') ? null : sheetData[i][19].value
-                            Detail.m_w_datatype =(typeof sheetData[i][20] === 'undefined') ? null : sheetData[i][20].value
-                            Detail.m_w_scale    =(typeof sheetData[i][21] === 'undefined') ? null : sheetData[i][21].value.result
-                            Detail.m_w_offset   =(typeof sheetData[i][22] === 'undefined') ? null : sheetData[i][22].value
+                            Detail.m_w_ip       =(typeof sheetData[i][16] === 'undefined') ? null : (typeof sheetData[i][16].value.result === 'undefined') ? sheetData[i][16].value : sheetData[i][16].value.result
+                            Detail.m_w_id       =(typeof sheetData[i][17] === 'undefined') ? null : (typeof sheetData[i][17].value.result === 'undefined') ? sheetData[i][17].value : sheetData[i][17].value.result
+                            Detail.m_w_fc       =(typeof sheetData[i][18] === 'undefined') ? null : (typeof sheetData[i][18].value.result === 'undefined') ? sheetData[i][18].value : sheetData[i][18].value.result
+                            Detail.m_w_addr     =(typeof sheetData[i][19] === 'undefined') ? null : (typeof sheetData[i][19].value.result === 'undefined') ? sheetData[i][19].value : sheetData[i][19].value.result
+                            Detail.m_w_datatype =(typeof sheetData[i][20] === 'undefined') ? null : (typeof sheetData[i][20].value.result === 'undefined') ? sheetData[i][20].value : sheetData[i][20].value.result
+                            Detail.m_w_scale    =(typeof sheetData[i][21] === 'undefined') ? null : (typeof sheetData[i][21].value.result === 'undefined') ? sheetData[i][21].value : sheetData[i][21].value.result
+                            Detail.m_w_offset   =(typeof sheetData[i][22] === 'undefined') ? null : (typeof sheetData[i][22].value.result === 'undefined') ? sheetData[i][22].value : sheetData[i][22].value.result
                             
                             await DBH.device_insert(page, Detail)
                             // console.log("detail",Detail.id)
