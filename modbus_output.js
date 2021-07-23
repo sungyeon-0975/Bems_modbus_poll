@@ -1,13 +1,13 @@
 const DBH = require('./database.js')
 const Modbus = require('jsmodbus')
 const net = require('net')
-// const Buffer = require('buffer');
 
 var ctrl_list =  new Array();
 
-start()
 
-async function start(){
+setInterval(() => ctrl_check_start(), 2000)
+
+async function ctrl_check_start(){
     await get_info()
     modbus_output()
 }
