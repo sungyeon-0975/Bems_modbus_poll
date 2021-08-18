@@ -4,12 +4,12 @@ const net = require('net')
 
 var ctrl_list =  new Array();
 
-// ctrl_check_start()
+
 setInterval(() => ctrl_check_start(), 2000)
 
 async function ctrl_check_start(){
-    await get_info() //db에서 output해줘야 하는 데이터 긁어오기
-    modbus_output() //통신연결
+    await get_info()
+    modbus_output()
 }
 
 
