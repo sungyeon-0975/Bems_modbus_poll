@@ -1,6 +1,7 @@
 const DBH = require('./database.js')
 var Excel = require('./get_excel.js')
 const Modbus = require('jsmodbus')
+const SerialPort = require('serialport')
 const net = require('net')
 const { timeStamp } = require('console')
 const { stringify } = require('querystring')
@@ -67,7 +68,7 @@ async function modbus_poll(){
     await Excel.loadExcelFile()
     await getInfo()
     //modbus poll시작하기 전에 excel정합성 확인
-    for(var key in channel_range){
+    for(var key in channel_range) {
         h = channel_range[key].start
         t = channel_range[key].end
         for (var i=0; i < Details[key].length; i++) {
@@ -162,15 +163,28 @@ function getInfo(){
 function modbusStart() {
     for (let i = 0; i < IPs.length; i++) { // 소켓을 설정하고 열어준다.
         if (IPs[i].active == 0)continue
-        sockets[i] = new net.Socket() //socket을 객체로 다루기 위해 설정해준다.
-        clients[i] = new Modbus.client.TCP(sockets[i]) // tcp를 열어준다.
-        //tcp설정
-        var options = {
-            'host': IPs[i].ip_address,
-            'port': IPs[i].port,
-            'autoReconnect' : true,
-            'timeout' : IPs[i].wait_time
+        
+        if (IPs[i].com_type == 'tcp/ip'){
+            sockets[i] = new net.Socket() //socket을 객체로 다루기 위해 설정해준다.
+            clients[i] = new Modbus.client.TCP(sockets[i]) // tcp를 열어준다.
+            //tcp설정
+            var options = {
+                'host': IPs[i].ip_address,
+                'port': IPs[i].port,
+                'autoReconnect' : true,
+                'timeout' : IPs[i].wait_time
+            }
+        }else{
+            socket[i] = new SerialPort('/dev/ttyUSB0', {
+                baudrate: 115200,
+                parity: 'even',
+                stopbits: 1
+              })
+              
+            clients[i] = new Modbus.client.RTU(sockets[i]) // tcp를 열어준다.
         }
+        
+        
         sockets[i].on("connect", async function () { //소켓이 연결되는 경우 어떻게 사용할 건지
             console.log("connected!!!!", IPs[i].ip_address)
             var targetchannels = Channels[IPs[i].id]
@@ -184,7 +198,7 @@ function modbusStart() {
                                 func = clients[i].readCoils(targetchannels[fi].start_address, targetchannels[fi].read_byte)
                                 break
                             case 1://Read Discrete Input
-                                func = clients[i].readDiscreteInput(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                func = clients[i].readDiscreteInputs(targetchannels[fi].start_address, targetchannels[fi].read_byte)
                                 break
                             case 3://Read Holding Registers
                                 func = clients[i].readHoldingRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
@@ -206,14 +220,14 @@ function modbusStart() {
                             for (se = 0; se < sensors.length; se++) {
                                 if (sensors[se].m_enable == 0)continue
                                 try{
-                                if (sensors[se].object_type.charAt(0) == 'B'){
-                                    targetIdx = parseInt((sensors[se].m_addr - targetchannels[fi].start_address)/8)
-                                    res = "00000000" + parseInt(modbus_result.slice(targetIdx,targetIdx + 1).toString('hex'),16).toString(2)
-                                    // console.log('결과 비트',res)
-                                    bitoffset = (sensors[se].m_addr - targetchannels[fi].start_address) % 8
-                                    // console.log("비트 ",bitoffset)
-                                    resData = res.charAt(res.length-1-bitoffset)
-                                }else{
+                                // if (sensors[se].object_type.charAt(0) == 'B'){ //binary값인 경우
+                                //     targetIdx = parseInt((sensors[se].m_addr - targetchannels[fi].start_address)/8)
+                                //     res = "00000000" + parseInt(modbus_result.slice(targetIdx,targetIdx + 1).toString('hex'),16).toString(2)
+                                //     // console.log('결과 비트',res)
+                                //     bitoffset = (sensors[se].m_addr - targetchannels[fi].start_address) % 8
+                                //     // console.log("비트 ",bitoffset)
+                                //     resData = res.charAt(res.length-1-bitoffset)
+                                // }else{
                                     targetIdx = (sensors[se].m_addr - targetchannels[fi].start_address)*2
                                     switch (sensors[se].m_dattype) {
                                         case 0://unsigned int 16bit AB
@@ -269,16 +283,18 @@ function modbusStart() {
                                             break;
                                         case 14://14 : 1bit value
                                             //이부분 맞는지 확인 필요
-                                            const arr = Array.from({length: 16}, () => 0);
-                                            var str = (modbus_result.readInt16BE(targetIdx)).toString(2)
-                                            var idx = 15
-                                            for (var i = str.length-1; i > -1; i--){
-                                                arr[idx--] = str.charAt(i)
+                                            console.log('modbus_result : ',modbus_result)
+                                            if (targetchannels[fi].function_code == 3 || targetchannels[fi].function_code == 4){ //아날로그로 읽는 경우
+                                                if (modbus_result.readInt16BE(targetIdx) & (1<<(15-sensors[se].m_offsetbit))){
+                                                    resData = 1
+                                                }else{ resData = 0 }
+                                            }else{                                                                              //바이너리로 읽어오는 경우
+                                                if (modbus_result.readInt8(parseInt((sensors[se].m_offsetbit + 1)/8)) & (1<<(sensors[se].m_offsetbit+1)%8 -1)) resData = 1
+                                                else resData = 0
                                             }
-                                            resData = parseInt(arr[sensors[se].m_offsetbit])
                                             break;
                                         }
-                                    }
+                                    // }
                                 }catch(e){
                                     console.log("data transform error : ", e)
                                     resData = NaN //받는데이터가 요청한 데이터보다 짧을때 처리(na)

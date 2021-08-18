@@ -1,15 +1,15 @@
 const DBH = require('./database.js')
 const Modbus = require('jsmodbus')
 const net = require('net')
-// const Buffer = require('buffer');
 
 var ctrl_list =  new Array();
 
-start()
+// ctrl_check_start()
+setInterval(() => ctrl_check_start(), 2000)
 
-async function start(){
-    await get_info()
-    modbus_output()
+async function ctrl_check_start(){
+    await get_info() //db에서 output해줘야 하는 데이터 긁어오기
+    modbus_output() //통신연결
 }
 
 
@@ -63,7 +63,7 @@ function modbus_output(){
         }
         socket.on('connect', function () {
             value = target.ctrlvalue*target.scale + target.offset//multi 이면 list , single이면 그냥 단일 value
-            console.log(value)
+            // console.log(value)
             switch (target.dattype) {
                 case 0://unsigned int 16bit AB
                     buf = Buffer.alloc(2)
@@ -161,3 +161,4 @@ function modbus_output(){
     }
     
 }
+
