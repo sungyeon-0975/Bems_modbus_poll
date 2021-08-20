@@ -131,6 +131,7 @@ function modbus_output(){
                     }
             }
             console.log(buf)
+            //주소처리 다시 확인해야 함
             switch (target.func){
                 case 5://write single coil
                     func = client.writeSingleCoil(target.address,buf)

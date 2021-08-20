@@ -176,9 +176,7 @@ function modbusStart() {
             }
         }else{
             socket[i] = new SerialPort('/dev/ttyUSB0', {
-                baudrate: 115200,
-                parity: 'even',
-                stopbits: 1
+                baudrate: 9600
               })
               
             clients[i] = new Modbus.client.RTU(sockets[i]) // tcp를 열어준다.
