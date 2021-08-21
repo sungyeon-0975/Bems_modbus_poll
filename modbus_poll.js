@@ -174,12 +174,12 @@ function modbusStart() {
                 'autoReconnect' : true,
                 'timeout' : IPs[i].wait_time
             }
-        }else{
-            socket[i] = new SerialPort('/dev/ttyUSB0', {
+        }else if (IPS[i].com_type == 'rtu') {
+            socket[i] = new SerialPort('IPs[i].ip_address', {
                 baudrate: 9600
               })
               
-            clients[i] = new Modbus.client.RTU(sockets[i]) // tcp를 열어준다.
+            clients[i] = new Modbus.client.RTU(sockets[i], )// device_address는 channel옵션이라서 여기서 정의하면 안될것 같음. 구조 수정필요
         }
         
         
