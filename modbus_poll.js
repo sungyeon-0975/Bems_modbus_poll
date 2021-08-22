@@ -220,12 +220,13 @@ function modbusStart() {
 
         } else if (IPs[i].com_type == 'rtu') {
             // 소켓을 열어준다.
-            socket[i] = new SerialPort(IPs[i].address, {
-                baudrate: 9600
+            sockets[i] = new SerialPort(IPs[i].address, {
+                baudRate: 9600
             })
             rtu_clients[i] = []
             sockets[i].on('open', async function () {
                 let targetchannels = Channels[IPs[i].id] // ip의 id에 해당하는 데이터들을 가져온다.
+                setInterval(async() => {
                 for (let fi = 0; fi < targetchannels.length; fi++) { // socket과 slave_id를 통해 clients를 열어준다.
                     // device_id를 뽑아서 확인한다.
                     let slave_id = targetchannels[fi].device_address
@@ -235,22 +236,22 @@ function modbusStart() {
                     if (targetchannels[fi].active == 1) { // active 상태일때만 반복시킴
                         switch (targetchannels[fi].function_code) {
                             case 0://Read Coils
-                                func = await rtu_clients[i][slave_id].readCoils(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                func = rtu_clients[i][slave_id].readCoils(targetchannels[fi].start_address, targetchannels[fi].read_byte)
                                 break
                             case 1://Read Discrete Input
-                                func = await rtu_clients[i][slave_id].readDiscreteInputs(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                func = rtu_clients[i][slave_id].readDiscreteInputs(targetchannels[fi].start_address, targetchannels[fi].read_byte)
                                 break
                             case 3://Read Holding Registers
-                                func = await rtu_clients[i][slave_id].readHoldingRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                func = rtu_clients[i][slave_id].readHoldingRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
                                 break
                             case 4://Read Input Registers
-                                func = await rtu_clients[i][slave_id].readInputRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                func = rtu_clients[i][slave_id].readInputRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
                                 break
                         }
                     }
                     DBH.channel_inc_tx(targetchannels[fi].id)
-                    func.then(function () {
-                        response_process(targetchannels, resp);
+                    await func.then(function (resp) {
+                        response_process(targetchannels[fi], resp);
                     }).catch(function () {
                         DBH.channel_inc_err(targetchannels[fi].id)
                         console.log("socket network error")
@@ -258,32 +259,33 @@ function modbusStart() {
                         console.error(arguments)
                     })
                 }
+            },IPs[i].period)
             })
         }
     }
 }
 
-function response_process(targetchannels, resp) {
-    DBH.channel_inc_rx(targetchannels[fi].id)
+function response_process(targetchannels_fi, resp) {
+    DBH.channel_inc_rx(targetchannels_fi.id)
     let se, sensors, targetIdx, resData
     modbus_result = resp.response._body._valuesAsBuffer
-    console.log(fi, modbus_result, Buffer.byteLength(modbus_result, 'utf8'), targetchannels[fi].read_byte)
+    console.log(modbus_result, Buffer.byteLength(modbus_result, 'utf8'), targetchannels_fi.read_byte)
     //이제 여기서 데이터를 정규화 하는 작업 해야함
-    sensors = Details[targetchannels[fi].id]//detail객체
+    sensors = Details[targetchannels_fi.id]//detail객체
     if (sensors === undefined || sensors.length == 0) return //Detail이 정의되어 있지 않은 경우 연산없이 넘긴다.
-    console.log("set read:", targetchannels[fi].start_address, targetchannels[fi].read_byte)
+    console.log("set read:", targetchannels_fi.start_address, targetchannels_fi.read_byte)
     for (se = 0; se < sensors.length; se++) {
         if (sensors[se].m_enable == 0) continue
         try {
             // if (sensors[se].object_type.charAt(0) == 'B'){ //binary값인 경우
-            //     targetIdx = parseInt((sensors[se].m_addr - targetchannels[fi].start_address)/8)
+            //     targetIdx = parseInt((sensors[se].m_addr - targetchannels_fi.start_address)/8)
             //     res = "00000000" + parseInt(modbus_result.slice(targetIdx,targetIdx + 1).toString('hex'),16).toString(2)
             //     // console.log('결과 비트',res)
-            //     bitoffset = (sensors[se].m_addr - targetchannels[fi].start_address) % 8
+            //     bitoffset = (sensors[se].m_addr - targetchannels_fi.start_address) % 8
             //     // console.log("비트 ",bitoffset)
             //     resData = res.charAt(res.length-1-bitoffset)
             // }else{
-            targetIdx = (sensors[se].m_addr - targetchannels[fi].start_address) * 2
+            targetIdx = (sensors[se].m_addr - targetchannels_fi.start_address) * 2
             switch (sensors[se].m_dattype) {
                 case 0://unsigned int 16bit AB
                     resData = modbus_result.readUInt16BE(targetIdx)
@@ -339,7 +341,7 @@ function response_process(targetchannels, resp) {
                 case 14://14 : 1bit value
                     //이부분 맞는지 확인 필요
                     console.log('modbus_result : ', modbus_result)
-                    if (targetchannels[fi].function_code == 3 || targetchannels[fi].function_code == 4) { //아날로그로 읽는 경우
+                    if (targetchannels[fi].function_code == 3 || targetchannels_fi.function_code == 4) { //아날로그로 읽는 경우
                         if (modbus_result.readInt16BE(targetIdx) & (1 << (15 - sensors[se].m_offsetbit))) {
                             resData = 1
                         } else { resData = 0 }
