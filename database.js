@@ -56,7 +56,7 @@ var Database = {
         if(page == 0){//Channel
             return new Promise(function(resolve, reject) {
                 try{
-                connection.query(`INSERT INTO modbus_ip (id,name,com_type,ip_address,port,period,wait_time,active) 
+                connection.query(`INSERT INTO modbus_ip (id,name,com_type,address,port,period,wait_time,active) 
                 VALUES(${data.Id},'${data.Name}','${data.ComType}','${data.IpAddress}',${data.Port},${data.Period},${data.WaitTime},${data.Active})`, (error,rows,field) => {
                     if(error) throw error;
                     resolve();
@@ -173,7 +173,7 @@ var Database = {
     get_ip_addr : function(id){
         return new Promise(function(resolve, reject) {
             try{
-                connection.query(`select ip_address,port from modbus_ip where id = ${id}`, (error, rows, fields) => {
+                connection.query(`select address,port from modbus_ip where id = ${id}`, (error, rows, fields) => {
                     if (error) throw error;
                     resolve(rows[0]);
                 });
