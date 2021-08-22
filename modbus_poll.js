@@ -218,7 +218,7 @@ function modbusStart() {
             sockets[i].connect(options)// 실제로 포트를 열어준다.
 
 
-        } else if (IPS[i].com_type == 'rtu') {
+        } else if (IPs[i].com_type == 'rtu') {
             // 소켓을 열어준다.
             socket[i] = new SerialPort(IPs[i].address, {
                 baudrate: 9600
