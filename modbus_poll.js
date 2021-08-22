@@ -199,8 +199,8 @@ function modbusStart() {
                                     break
                             }
                             DBH.channel_inc_tx(targetchannels[fi].id)
-                            func.then(function () {
-                                response_process(targetchannels, resp);
+                            func.then(function (resp) {
+                                response_process(targetchannels[fi], resp);
                             }).catch(function () {
                                 DBH.channel_inc_err(targetchannels[fi].id)
                                 console.log("socket network error")
