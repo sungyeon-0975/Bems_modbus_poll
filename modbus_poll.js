@@ -102,7 +102,6 @@ function getInfo() {
                 tmp.active = row["active"]
                 IPs.push(tmp)//리스트에 패킷데이터를 저장한다.
                 Channels[tmp.id] = [] //ChannelName을 key값으로 리스트를 생성해준다. 리스트에는 frames들이 들어갈계획  
-                Channels_device_id[tmp.id] = [] //ChannelName을 key값으로 리스트를 생성해준다. 리스트에는 frames들이 들어갈계획  
             })
             rows = await DBH.device_select("modbus_channels")
             rows.forEach(row => {
@@ -117,7 +116,6 @@ function getInfo() {
                 tmp.read_byte = row["read_byte"]
                 tmp.active = row["active"]
                 Channels[tmp.channel_id].push(tmp)//channelname에 맞게 리스트에 차례로 삽입한다. 나중에 패킷 보낼때 사용함.'
-                Channels_device_id[tmp.channel_id].push(tmp)
                 Details[tmp.id] = []
                 r.start = tmp.start_address
                 r.end = tmp.start_address + tmp.read_byte - 1
