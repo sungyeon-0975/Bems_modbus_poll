@@ -180,7 +180,7 @@ function modbusStart() {
                 console.log("connected!!!!", IPs[i].address)
                 let targetchannels = Channels[IPs[i].id]
                 console.log("targetFrame!!!", targetchannels)
-                setInterval(() => {
+             
                     for (let fi = 0; fi < targetchannels.length; fi++) {//frame의 개수만큼 반복하는 코드
                         if (targetchannels[fi].active == 1) { // active 상태일때만 반복시킴
                             // console.log("타켓을 보자", targetchannels[fi])
@@ -198,23 +198,26 @@ function modbusStart() {
                                     func = clients[i].readInputRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
                                     break
                             }
+                            console.log(targetchannels[fi])
                             DBH.channel_inc_tx(targetchannels[fi].id)
+                               setInterval(() => {
                             func.then(function (resp) {
                                 response_process(targetchannels[fi], resp);
                             }).catch(function () {
+                                console.log(targetchannels[fi].id)
                                 DBH.channel_inc_err(targetchannels[fi].id)
                                 console.log("socket network error")
                                 console.log(IPs[i].address)
                                 console.error(arguments)
-                                //sockets[i].end() 오류가 생겨도 닫지 않는다. 다른 frame 통신을 위해서
-                            })
+                                //sockets[i].}end() 오류가 생겨도 닫지 않는다. 다른 frame 통신을 위해서
+                            })}, IPs[i].period)
                         }
                     }
-                }, IPs[i].period)
             });
             sockets[i].on("error", function () {//에러가 발생하면 어떻게 할건지
                 console.log("errored !!!!!!", IPs[i].address)
             });
+
             sockets[i].connect(options)// 실제로 포트를 열어준다.
 
 
@@ -223,43 +226,46 @@ function modbusStart() {
             sockets[i] = new SerialPort(IPs[i].address, {
                 baudRate: 9600
             })
-            rtu_clients[i] = []
-            sockets[i].on('open', async function () {
+            if(rtu_clients[i] == undefined){
+                rtu_clients[i] = []
+            }
+            sockets[i].on('open', async() =>{
+                console.log("check:",i, IPs[i])
                 let targetchannels = Channels[IPs[i].id] // ip의 id에 해당하는 데이터들을 가져온다.
                 setInterval(async() => {
-                for (let fi = 0; fi < targetchannels.length; fi++) { // socket과 slave_id를 통해 clients를 열어준다.
-                    // device_id를 뽑아서 확인한다.
-                    let slave_id = targetchannels[fi].device_address
-                    if (rtu_clients[i][slave_id] == undefined) {
-                        rtu_clients[i][slave_id] = new Modbus.client.RTU(sockets[i], slave_id)// 선언해서 device_id로 rtu 연동한다.
-                    }
-                    if (targetchannels[fi].active == 1) { // active 상태일때만 반복시킴
-                        switch (targetchannels[fi].function_code) {
-                            case 0://Read Coils
-                                func = rtu_clients[i][slave_id].readCoils(targetchannels[fi].start_address, targetchannels[fi].read_byte)
-                                break
-                            case 1://Read Discrete Input
-                                func = rtu_clients[i][slave_id].readDiscreteInputs(targetchannels[fi].start_address, targetchannels[fi].read_byte)
-                                break
-                            case 3://Read Holding Registers
-                                func = rtu_clients[i][slave_id].readHoldingRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
-                                break
-                            case 4://Read Input Registers
-                                func = rtu_clients[i][slave_id].readInputRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
-                                break
+                    for (let fi = 0; fi < targetchannels.length; fi++) { // socket과 slave_id를 통해 clients를 열어준다.
+                        // device_id를 뽑아서 확인한다.
+                        let slave_id = targetchannels[fi].device_address
+                        if (rtu_clients[i][slave_id] == undefined) {
+                            rtu_clients[i][slave_id] = new Modbus.client.RTU(sockets[i], slave_id)// 선언해서 device_id로 rtu 연동한다.
                         }
+                        if (targetchannels[fi].active == 1) { // active 상태일때만 반복시킴
+                            switch (targetchannels[fi].function_code) {
+                                case 0://Read Coils
+                                    func = rtu_clients[i][slave_id].readCoils(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                    break
+                                case 1://Read Discrete Input
+                                    func = rtu_clients[i][slave_id].readDiscreteInputs(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                    break
+                                case 3://Read Holding Registers
+                                    func = rtu_clients[i][slave_id].readHoldingRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                    break
+                                case 4://Read Input Registers
+                                    func = rtu_clients[i][slave_id].readInputRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                    break
+                            }
+                        }
+                        DBH.channel_inc_tx(targetchannels[fi].id)
+                        await func.then(function (resp) {
+                            response_process(targetchannels[fi], resp);
+                        }).catch(function () {
+                            DBH.channel_inc_err(targetchannels[fi].id)
+                            console.log("socket network error")
+                            console.log(IPs[i].address)
+                            console.error(arguments)
+                        })
                     }
-                    DBH.channel_inc_tx(targetchannels[fi].id)
-                    await func.then(function (resp) {
-                        response_process(targetchannels[fi], resp);
-                    }).catch(function () {
-                        DBH.channel_inc_err(targetchannels[fi].id)
-                        console.log("socket network error")
-                        console.log(IPs[i].address)
-                        console.error(arguments)
-                    })
-                }
-            },IPs[i].period)
+                }, IPs[i].period)
             })
         }
     }
@@ -341,7 +347,7 @@ function response_process(targetchannels_fi, resp) {
                 case 14://14 : 1bit value
                     //이부분 맞는지 확인 필요
                     console.log('modbus_result : ', modbus_result)
-                    if (targetchannels[fi].function_code == 3 || targetchannels_fi.function_code == 4) { //아날로그로 읽는 경우
+                    if (targetchannels_fi.function_code == 3 || targetchannels_fi.function_code == 4) { //아날로그로 읽는 경우
                         if (modbus_result.readInt16BE(targetIdx) & (1 << (15 - sensors[se].m_offsetbit))) {
                             resData = 1
                         } else { resData = 0 }
