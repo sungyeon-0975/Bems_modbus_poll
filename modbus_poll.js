@@ -180,39 +180,38 @@ function modbusStart() {
                 console.log("connected!!!!", IPs[i].address)
                 let targetchannels = Channels[IPs[i].id]
                 console.log("targetFrame!!!", targetchannels)
-             
-                    for (let fi = 0; fi < targetchannels.length; fi++) {//frame의 개수만큼 반복하는 코드
-                        if (targetchannels[fi].active == 1) { // active 상태일때만 반복시킴
-                            // console.log("타켓을 보자", targetchannels[fi])
-                            switch (targetchannels[fi].function_code) {
-                                case 0://Read Coils
-                                    func = clients[i].readCoils(targetchannels[fi].start_address, targetchannels[fi].read_byte)
-                                    break
-                                case 1://Read Discrete Input
-                                    func = clients[i].readDiscreteInputs(targetchannels[fi].start_address, targetchannels[fi].read_byte)
-                                    break
-                                case 3://Read Holding Registers
-                                    func = clients[i].readHoldingRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
-                                    break
-                                case 4://Read Input Registers
-                                    func = clients[i].readInputRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
-                                    break
-                            }
-                            console.log(targetchannels[fi])
-                            DBH.channel_inc_tx(targetchannels[fi].id)
-                               setInterval(() => {
-                            func.then(function (resp) {
-                                response_process(targetchannels[fi], resp);
-                            }).catch(function () {
-                                console.log(targetchannels[fi].id)
-                                DBH.channel_inc_err(targetchannels[fi].id)
-                                console.log("socket network error")
-                                console.log(IPs[i].address)
-                                console.error(arguments)
-                                //sockets[i].}end() 오류가 생겨도 닫지 않는다. 다른 frame 통신을 위해서
-                            })}, IPs[i].period)
+                for (let fi = 0; fi < targetchannels.length; fi++) {//frame의 개수만큼 반복하는 코드
+                    if (targetchannels[fi].active == 1) { // active 상태일때만 반복시킴
+                        // console.log("타켓을 보자", targetchannels[fi])
+                        switch (targetchannels[fi].function_code) {
+                            case 0://Read Coils
+                                func = clients[i].readCoils(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                break
+                            case 1://Read Discrete Input
+                                func = clients[i].readDiscreteInputs(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                break
+                            case 3://Read Holding Registers
+                                func = clients[i].readHoldingRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                break
+                            case 4://Read Input Registers
+                                func = clients[i].readInputRegisters(targetchannels[fi].start_address, targetchannels[fi].read_byte)
+                                break
                         }
+                        console.log(targetchannels[fi])
+                        DBH.channel_inc_tx(targetchannels[fi].id)
+                            setInterval(() => {
+                        func.then(function (resp) {
+                            response_process(targetchannels[fi], resp);
+                        }).catch(function () {
+                            console.log(targetchannels[fi].id)
+                            DBH.channel_inc_err(targetchannels[fi].id)
+                            console.log("socket network error")
+                            console.log(IPs[i].address)
+                            console.error(arguments)
+                            //sockets[i].}end() 오류가 생겨도 닫지 않는다. 다른 frame 통신을 위해서
+                        })}, IPs[i].period)
                     }
+                }
             });
             sockets[i].on("error", function () {//에러가 발생하면 어떻게 할건지
                 console.log("errored !!!!!!", IPs[i].address)
